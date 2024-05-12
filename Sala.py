@@ -1,11 +1,12 @@
 class Sala:
-    def __init__(self, sala_name, creator):
+    def __init__(self, sala_name, creator, password = ""):
         self.sala_name = sala_name
         self.admin = creator
+        self.password = password
         self.clients = []
 
-    def add_new_client(self, requester, new_client):
-        if self.admin == requester:
+    def add_new_client(self, new_client, passw = ""):
+        if self.password == passw:
             self.clients.append(new_client)
             print("Cliente Adicionado!")
 
