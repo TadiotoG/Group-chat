@@ -18,5 +18,7 @@ print('Mensagem do servidor:', data.decode())
 for i in range(5):
     msg = input('Envie um mensagem : ')
     client_socket.send(msg.encode())
+    data = client_socket.recv(1024)
+    print('Mensagem do servidor:', data.decode())
 
 client_socket.close()
