@@ -8,16 +8,10 @@ class Servidor:
     def __init__(self): # Se nao passar parametros cria novo servidor
         self.clientes = []
         self.salas = []
-
-    def __init__(self, load_csv_name): # Se passar nome do csv, abre csv e inicializa servidor
-        csv_base = pd.read_csv(load_csv_name)
-        for i in range(csv_base["NOME"]):
-            self.clients = csv_base['NOME'][i]
-
-        # self.salas = ALGUMA COISA 
+        self.usuarios_cadastrados = []
     
     @staticmethod
-    def carrega_usuario():
+    def carrega_usuario(self):
         try:
             with open('UsuariosCadastrados.csv', 'r') as csvfile:
                 print('Exite')
@@ -38,8 +32,8 @@ class Servidor:
         return usuarios_cadastrados
   
     @staticmethod
-    def registro_usuario(usuario):
-        usuarios_cadastrados = Servidor.carrega_usuario()
+    def registro_usuario(self, usuario):
+        usuarios_cadastrados = self.carrega_usuario()
         user = usuarios_cadastrados['NOME']
         for nome in user:
             print(nome)
@@ -108,7 +102,7 @@ class Servidor:
             if self.salas[i] == nome_da_sala:
                 return i
     
-    def main():
+    def main(self):
         
         # Cria um objeto de socket
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -131,8 +125,9 @@ class Servidor:
             client_socket, addr = server_socket.accept()
 
             # Cria uma nova thread para lidar com a conexão
-            client_handler = threading.Thread(target=Servidor.handle_client, args=(client_socket, addr))
+            client_handler = threading.Thread(target=self.handle_client, args=(self, client_socket, addr))
             client_handler.start()
 
 if __name__ == "__main__":
-    Servidor.main()
+    new_server = Servidor()
+    new_server.main()
