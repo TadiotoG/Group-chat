@@ -62,7 +62,7 @@ class Servidor:
         return 'Usuário registrado com sucesso.'
     
     @staticmethod
-    def indetifica_usuario(self,addr):
+    def identifica_usuario(self,addr):
         user = self.usuarios_cadastrados['NOME']        
         i = 0
         for end in self.codigo_usuarios:
@@ -121,7 +121,7 @@ class Servidor:
             # LISTAR_SALAS
             if mensagem[0] == "LISTAR_SALAS": 
                 #Funcao responsavel por verificar qual usuario solicitou a informação
-                nome=self.indetifica_usuario(self,addr)
+                nome=self.identifica_usuario(self,addr)
                 indice_sala = self.encontrar_sala(nome)
                 self.salas[indice_sala].list_clients()
 
