@@ -54,7 +54,7 @@ class Servidor:
         return 'Usuário registrado com sucesso.'
 
     @staticmethod
-    def handle_client(client_socket, addr):
+    def handle_client(self, client_socket, addr):
         print('Conexão recebida de', addr)
         # Envia uma mensagem de boas-vindas para o cliente
         client_socket.send(b'Obrigado por se conectar!')
@@ -77,19 +77,24 @@ class Servidor:
                 if privacidade == "PRIVADA":
                     if len(mensagem) > 3:
                         senha = mensagem[3]
+                        new_sala = Sala(nome_da_sala, addr, senha)
+                        self.salas.append(new_sala)
                         print(senha)
                     else:
                         client_socket.send(b'ERRO : Ausencia de senha para salas privadas')
-                else:
-                    if len(mensagem) > 3:
-                        senha = mensagem[3]
-                    else :
-                        senha = 0 
-                #Sala.create_new_sala(privacidade,nome_da_sala,senha) 
-            # LISTAR_SALAS
-            #if mensagem[0] == "LISTAR_SALAS": 
 
-                #Sala.Listar()
+                else:
+                    new_sala = Sala(nome_da_sala, addr)
+                    self.salas.append(new_sala)
+
+            if mensagem[0] == "ENTRAR_SALA":
+                pass
+
+            # LISTAR_SALAS
+            if mensagem[0] == "LISTAR_SALAS": 
+                indice_sala = self.encontrar_sala(mensagem[1])
+                self.salas[indice_sala].list_clients()
+                
             # ENTRAR_SALA
 
             # SAIR_SALA
@@ -97,6 +102,11 @@ class Servidor:
             # BANIR_USUARIO
         # Fecha a conexão com o cliente
         client_socket.close()
+
+    def encontrar_sala(self, nome_da_sala):
+        for i in range(self.salas):
+            if self.salas[i] == nome_da_sala:
+                return i
     
     def main():
         
