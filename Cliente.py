@@ -1,24 +1,27 @@
-import socket
+from Class_Sala import Sala
 
-# Cria um objeto de socket
-client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+class Cliente:
+    def __init__(self, client_name, key):
+        self.name = client_name
+        self.public_key = key
 
-# Obtém o nome do host do servidor
-host = socket.gethostname()
+    def send_message(message):
+        print(message)
 
-# Define a porta em que o servidor está escutando
-port = 12345
+    def create_sala(self):
+        pass
 
-# Conecta ao servidor
-client_socket.connect((host, port))
+    def remove_client(self, client_name):
+        pass
 
-# Recebe dados do servidor
-data = client_socket.recv(1024)
-print('Mensagem do servidor:', data.decode())
-for i in range(5):
-    msg = input('Envie um mensagem : ')
-    client_socket.send(msg.encode())
-    data = client_socket.recv(1024)
-    print('Mensagem do servidor:', data.decode())
+    def enter_in_sala(self, sala_code):
+        pass
 
-client_socket.close()
+    def request_list(self):
+        pass
+
+new_client = Cliente("Gabriel", 123)
+client_2 = Cliente("Davi", 222)
+sala_test = Sala("MinhaSala", new_client)
+sala_test.add_new_client(new_client = client_2)
+sala_test.list_clients()

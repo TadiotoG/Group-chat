@@ -1,4 +1,9 @@
 class Sala:
+    
+    def __init__(self):
+        print("Sem parametros")
+        pass
+
     def __init__(self, sala_name, creator, password = ""):
         self.sala_name = sala_name
         self.admin = creator
@@ -26,5 +31,10 @@ class Sala:
         else:
             print("Voce nao pode enviar mensagens para este grupo!")
 
-    def send_message_to_clients(message):
+    def send_message_to_clients(self, message):
+        print(message)
         pass
+
+    def list_clients(self):
+        for client in self.clients:
+            print(client.name)

@@ -2,8 +2,19 @@ import socket
 import threading
 import csv
 import pandas as pd
+from Class_Sala import Sala
 
 class Servidor:
+    def __init__(self): # Se nao passar parametros cria novo servidor
+        self.clientes = []
+        self.salas = []
+
+    def __init__(self, load_csv_name): # Se passar nome do csv, abre csv e inicializa servidor
+        csv_base = pd.read_csv(load_csv_name)
+        for i in range(csv_base["NOME"]):
+            self.clients = csv_base['NOME'][i]
+
+        # self.salas = ALGUMA COISA 
     
     @staticmethod
     def carrega_usuario():
@@ -30,16 +41,16 @@ class Servidor:
     def registro_usuario(usuario):
         usuarios_cadastrados = Servidor.carrega_usuario()
         user = usuarios_cadastrados['NOME']
-        for i in user:
-            print(i)
-            if usuario == i:
+        for nome in user:
+            print(nome)
+            if usuario == nome:
                 return 'ERRO: Já existe um usuário com este nome.'
         
         with open('UsuariosCadastrados.csv', 'a', newline='') as csvfile:
             fieldnames = ['NOME', 'CHAVE PUBLICA']
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writerow({'NOME': usuario, 'CHAVE PUBLICA': '123'})
-            #usuarios_cadastrados = pd.read_csv('UsuariosCadastrados.csv', sep=',', encoding='latin-1')
+           
         return 'Usuário registrado com sucesso.'
 
     @staticmethod
@@ -51,15 +62,41 @@ class Servidor:
             msg = client_socket.recv(1024)
             if not msg: break
             print('Mensagem do cliente:', msg.decode())
-            msg = msg.decode()
-            if msg.startswith("REGISTRO"):              
-                nome_usuario = msg.split(" ")[1]
+            msg = msg.decode()       
+            mensagem =  msg.split(" ")       
+            # REGISTRO
+            if mensagem[0] ==  "REGISTRO":              
+                nome_usuario = mensagem[1]
                 resposta = Servidor.registro_usuario(nome_usuario)
                 client_socket.send(resposta.encode())
-        
+            
+            # CRIAR SALA
+            if mensagem[0] == "CRIAR_SALA":   
+                privacidade = mensagem[1]
+                nome_da_sala = mensagem[2]
+                if privacidade == "PRIVADA":
+                    if len(mensagem) > 3:
+                        senha = mensagem[3]
+                        print(senha)
+                    else:
+                        client_socket.send(b'ERRO : Ausencia de senha para salas privadas')
+                else:
+                    if len(mensagem) > 3:
+                        senha = mensagem[3]
+                    else :
+                        senha = 0 
+                #Sala.create_new_sala(privacidade,nome_da_sala,senha) 
+            # LISTAR_SALAS
+            #if mensagem[0] == "LISTAR_SALAS": 
+
+                #Sala.Listar()
+            # ENTRAR_SALA
+
+            # SAIR_SALA
+
+            # BANIR_USUARIO
         # Fecha a conexão com o cliente
         client_socket.close()
-
     
     def main():
         
