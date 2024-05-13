@@ -33,7 +33,7 @@ class Servidor:
   
     @staticmethod
     def registro_usuario(self, usuario):
-        usuarios_cadastrados = self.carrega_usuario()
+        usuarios_cadastrados = self.carrega_usuario(self)
         user = usuarios_cadastrados['NOME']
         for nome in user:
             print(nome)
@@ -61,7 +61,7 @@ class Servidor:
             # REGISTRO
             if mensagem[0] ==  "REGISTRO":              
                 nome_usuario = mensagem[1]
-                resposta = Servidor.registro_usuario(nome_usuario)
+                resposta = self.registro_usuario(self, nome_usuario)
                 client_socket.send(resposta.encode())
             
             # CRIAR SALA
@@ -81,6 +81,7 @@ class Servidor:
                     new_sala = Sala(nome_da_sala, addr)
                     self.salas.append(new_sala)
 
+            # ENTRAR NA SALA
             if mensagem[0] == "ENTRAR_SALA":
                 pass
 
@@ -88,8 +89,6 @@ class Servidor:
             if mensagem[0] == "LISTAR_SALAS": 
                 indice_sala = self.encontrar_sala(mensagem[1])
                 self.salas[indice_sala].list_clients()
-                
-            # ENTRAR_SALA
 
             # SAIR_SALA
 
