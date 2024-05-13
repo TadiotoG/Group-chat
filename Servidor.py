@@ -4,7 +4,17 @@ import csv
 import pandas as pd
 
 class Servidor:
-    
+    def __init__(self): # Se nao passar parametros cria novo servidor
+        self.clientes = []
+        self.salas = []
+
+    def __init__(self, load_csv_name): # Se passar nome do csv, abre csv e inicializa servidor
+        csv_base = pd.read_csv(load_csv_name)
+        for i in range(csv_base["NOME"]):
+            self.clients = csv_base['NOME'][i]
+
+        # self.salas = ALGUMA COISA 
+
     @staticmethod
     def carrega_usuario():
         try:
@@ -51,7 +61,13 @@ class Servidor:
             msg = client_socket.recv(1024)
             if not msg: break
             print('Mensagem do cliente:', msg.decode())
-            msg = msg.decode()
+            msg = msg.decode() # Aqui podemos fazer varias condicoes para diferentes comandos
+
+            #Pequeno exemplo abaixo
+
+            # if msg == "Create_sala"
+            #   servidor.create_new_sala() 
+
             if msg.startswith("REGISTRO"):              
                 nome_usuario = msg.split(" ")[1]
                 resposta = Servidor.registro_usuario(nome_usuario)
@@ -59,7 +75,6 @@ class Servidor:
         
         # Fecha a conexão com o cliente
         client_socket.close()
-
     
     def main():
         
