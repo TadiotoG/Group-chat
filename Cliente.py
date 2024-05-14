@@ -15,11 +15,14 @@ client_socket.connect((host, port))
 # Recebe dados do servidor
 data = client_socket.recv(1024)
 print('Mensagem do servidor:', data.decode())
+
+
 while(True):
+     # Cria uma nova thread para lidar com a conexão
     msg = input('Envie um mensagem : ')
     client_socket.send(msg.encode())
     data = client_socket.recv(1024)
-    print('Mensagem do servidor:', data.decode())
+    print(data.decode())
     if msg == "DESCONECTAR":
         break
 

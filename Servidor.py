@@ -11,7 +11,7 @@ class Servidor:
         self.usuarios_cadastrados = [] # Vai ter tudo
         self.usuarios_autenticados = []  # Vai ter somente os que estao em uso a parti que o servidor comeca a rodar
         self.codigo_usuarios = [] # Armazena a porta e o ip no mesmo indice que que o autenticado
-    
+        self.socket = [] # possivel gambiarra funcional
     @staticmethod
     def carrega_usuario(self):
         try:
@@ -93,8 +93,19 @@ class Servidor:
         i = 0
         for end in self.codigo_usuarios:
             if end[0] == addr[0] and end[1] == addr [1]:
-                #print(self.usuarios_autenticados[i])
+                
                 return self.usuarios_autenticados[i]  
+            i += 1
+
+    @staticmethod
+    def identifica_endereco(self,nome_buscado):   
+        i = 0
+        for nome in self.usuarios_autenticados:
+            print("Nome : " , nome)
+            print("Nome : " , nome_buscado)
+            if nome == nome_buscado :
+                print(self.codigo_usuarios[i])
+                return self.codigo_usuarios[i]  
             i += 1
     
     @staticmethod
@@ -207,12 +218,44 @@ class Servidor:
                     resposta = self.salas[indice_sala].list_clients()
 
             # ENVIAR MENSAGEM 
+            elif mensagem[0] == "ENVIAR_MENSAGEM" :
+                nome_da_sala = mensagem[1]
+                conteudo = mensagem[2]
+                if (len(mensagem)> 2):
+                    mensagem = mensagem[3:]
+                    for i in range(len(mensagem)):
+                        conteudo = conteudo +" "+ mensagem[i]
+                indice_sala = self.encontrar_sala(nome_da_sala)
+                if indice_sala == -1:
+                    resposta = "Sala não encontrada!"
+                else:
+                    resposta = self.salas[indice_sala].list_clients()
+                    usuarios_da_sala =  resposta.split(', ')
+                    resposta = "Mensagem enviada"
+                    for nome in usuarios_da_sala:
+                        end_envio = self.identifica_endereco(self,nome)
+                        if end_envio != None:
+                            for i in range(len(self.socket)):
+                                end_socket = self.socket[i].getpeername()   
+                                print(end_envio[0])
+                                print(end_socket[0])
+                                print(end_envio[1])
+                                print(end_socket[1])
+                                if end_envio[0] != addr[0] or end_envio[1] != addr[1]:
+                                    if end_envio[0] == end_socket[0] and end_envio[1] == end_socket[1]:
+                                        cliente = self.socket[i]
+                                        conteudo = "Mensagem do grupo " + nome_da_sala + " de " + self.identifica_usuario(self,addr) + " : " + conteudo
+                                        cliente.send(conteudo.encode())
+                                        print(self.socket[i])
+                                        
+
+
 
             # FECHA SALA
 
             else:
                 resposta = "Comando Invalido!"
-
+            resposta = 'Mensagem do servidor: ' + resposta
             client_socket.send(resposta.encode())
             self.salvar_salas_csv()
                     
@@ -261,7 +304,8 @@ class Servidor:
         while True:
             # Aceita a conexão
             client_socket, addr = server_socket.accept()
-
+            cliente = client_socket            
+            self.socket.append(cliente)            
             # Cria uma nova thread para lidar com a conexão
             client_handler = threading.Thread(target=self.handle_client, args=(self, client_socket, addr))
             client_handler.start()
