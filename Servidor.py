@@ -68,7 +68,6 @@ class Servidor:
         
     @staticmethod
     def registro_usuario(self, usuario, addr):
-
         #usuarios_cadastrados = self.carrega_usuario(self)
         user = self.usuarios_cadastrados['NOME']
         for nome in user:
@@ -110,21 +109,21 @@ class Servidor:
             if not msg: break
             print('Mensagem do cliente:', msg.decode())
             msg = msg.decode()       
-            mensagem =  msg.split(" ")       
+            mensagem =  msg.split(" ")
             # REGISTRO
             if mensagem[0] ==  "REGISTRO":              
                 nome_usuario = mensagem[1]
                 resposta = self.registro_usuario(self, nome_usuario, addr)
             
             # AUTENTICACAO
-            if mensagem[0] ==  "AUTENTICACAO":              
+            elif mensagem[0] ==  "AUTENTICACAO":              
                 nome_usuario = mensagem[1]
                 resposta = self.autentifica_usuario(self, nome_usuario, addr)
                 # AQUI TERA QUE PASSAR A CHAVE PUBLICA DO SERVIDOR PARA O USUARIO
                 # Fazer isso posteriomente
 
             # CRIAR SALA
-            if mensagem[0] == "CRIAR_SALA":
+            elif mensagem[0] == "CRIAR_SALA":
                 privacidade = mensagem[1]
                 nome_da_sala = mensagem[2]
                 nome_usuario = self.identifica_usuario(self, addr)
@@ -143,10 +142,10 @@ class Servidor:
                     resposta = "Sala criada!"
 
             # ENTRAR NA SALA
-            if mensagem[0] == "ENTRAR_SALA":
+            elif mensagem[0] == "ENTRAR_SALA":
                 nome_usuario = self.identifica_usuario(self, addr)
                 nome_da_sala = mensagem[1]
-                senha = " "
+                senha = ""
                 if len(mensagem) > 2:
                     senha = mensagem[2]
 
@@ -159,7 +158,7 @@ class Servidor:
                     resposta = self.salas[indice_sala].add_new_client(nome_usuario, senha)
 
             # SAIR_SALA
-            if mensagem[0] == "SAIR_SALA":
+            elif mensagem[0] == "SAIR_SALA":
                 nome_usuario = self.identifica_usuario(self, addr)
                 nome_da_sala = mensagem[1]
                 indice_sala = self.encontrar_sala(nome_da_sala)
@@ -171,7 +170,7 @@ class Servidor:
                     resposta = self.salas[indice_sala].remove_client(nome_usuario, nome_usuario)
 
             # LISTAR_SALAS
-            if mensagem[0] == "LISTAR_SALAS": 
+            elif mensagem[0] == "LISTAR_SALAS": 
                 #Funcao responsavel por verificar qual usuario solicitou a informação
                 nome=self.identifica_usuario(self,addr)
                 resposta = "Lista de salas: "
@@ -179,7 +178,7 @@ class Servidor:
                     resposta = resposta + sala.sala_name + ", "
 
             # BANIR_USUARIO
-            if mensagem[0] == "BANIR_USUARIO":
+            elif mensagem[0] == "BANIR_USUARIO":
                 nome_usuario = self.identifica_usuario(self, addr)
                 nome_da_sala = mensagem[1]
                 usuario_banido = mensagem[2]
@@ -192,13 +191,13 @@ class Servidor:
                     resposta = self.salas[indice_sala].remove_client(nome_usuario, usuario_banido)
 
             # SAIR DO SISTEMA
-            if mensagem[0] == "DESCONECTAR":
+            elif mensagem[0] == "DESCONECTAR":
                 print("Cliente ", self.identifica_usuario(self,addr), " desconectado")
                 resposta = "Desconectado do servidor!"
 
             # LISTAR USUARIOS DE UMA SALA
-            if mensagem[0] == "LISTAR_USUARIOS":
-                nome_da_sala = mensagem[2]
+            elif mensagem[0] == "LISTAR_USUARIOS":
+                nome_da_sala = mensagem[1]
                 indice_sala = self.encontrar_sala(nome_da_sala)
 
                 if indice_sala == -1:
@@ -206,6 +205,13 @@ class Servidor:
 
                 else:
                     resposta = self.salas[indice_sala].list_clients()
+
+            # ENVIAR MENSAGEM 
+
+            # FECHA SALA
+
+            else:
+                resposta = "Comando Invalido!"
 
             client_socket.send(resposta.encode())
             self.salvar_salas_csv()
@@ -249,7 +255,7 @@ class Servidor:
         server_socket.bind((host, port))
 
         # Começa a escutar por conexões
-        server_socket.listen(900)
+        server_socket.listen(500)
         print("Aguardando conexões...")
 
         while True:

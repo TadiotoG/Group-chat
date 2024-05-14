@@ -7,6 +7,7 @@ class Sala:
         self.clients = [creator]
 
     def add_new_client(self, new_client, passw = ""):
+        print("Senha fornecida >> (", passw, ")  Senha sistema >> (", self.password , ")")
         if self.password == passw:
             self.clients.append(new_client)
             return "Entrou em " + self.sala_name
@@ -40,5 +41,5 @@ class Sala:
     def list_clients(self):
         all_clients = ""
         for client in self.clients:
-            all_clients = all_clients + client.name + ", "
+            all_clients = all_clients + client + ", "
         return all_clients
