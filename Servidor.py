@@ -31,7 +31,28 @@ class Servidor:
         return usuarios_cadastrados
     
     @staticmethod
-    def autentifica_usuario(self, usuario,addr):
+    def carrega_salas(self):
+        try:
+            with open('SalasCadastradas.csv', 'r') as csvfile:
+                print("Carrregando Servidor ...")
+        except IOError:
+            print('Criando Servidor ...')
+            print('Servidor Criado')            
+            with open('SalasCadastradas.csv', 'w', newline='') as csvfile:
+                writer = csv.DictWriter(csvfile, fieldnames= ['NOME', 'CRIADOR', 'SENHA', 'USUARIOS'])
+                writer.writeheader()
+                
+        # Carregar usuários cadastrados de algum lugar
+        csv_salas = pd.read_csv('SalasCadastradas.csv')
+        for i in range(len(csv_salas)):
+            new_sala = Sala(str(csv_salas["NOME"][i]), str(csv_salas["CRIADOR"][i]), str(csv_salas["SENHA"][i]))
+            todos_usuarios = str(csv_salas["USUARIOS"][i])
+            new_sala.load_system(todos_usuarios.split(" "))
+            self.salas.append(new_sala)
+        # new_sala = Sala(nome_da_sala, nome_usuario, senha)
+
+    @staticmethod
+    def autentifica_usuario(self, usuario, addr):
         user = self.usuarios_cadastrados['NOME']
         for nome in user:
             if usuario == nome:
@@ -42,6 +63,7 @@ class Servidor:
         
     @staticmethod
     def registro_usuario(self, usuario, addr):
+
         #usuarios_cadastrados = self.carrega_usuario(self)
         user = self.usuarios_cadastrados['NOME']
         for nome in user:
@@ -55,7 +77,7 @@ class Servidor:
             novo_usuario = pd.DataFrame({'NOME': [usuario], 'CHAVE PUBLICA': ['123']})
             self.usuarios_cadastrados = pd.concat([self.usuarios_cadastrados, novo_usuario],ignore_index=True)
             self.usuarios_autenticados.append(usuario)
-            end = ' '.join([addr[0], addr[1]])
+            end = ' '.join((addr[0], str(addr[1]))) # COLOQUEI str(addr[1])
             self.codigo_usuarios.append(end)
         #print(self.usuarios_autenticados[0])
         #print(addr[1])
@@ -66,10 +88,9 @@ class Servidor:
         user = self.usuarios_cadastrados['NOME']        
         i = 0
         for end in self.codigo_usuarios:
-            if end[0] == addr[0]:
-                if end[1] == addr [1]:
-                    #print(self.usuarios_autenticados[i])
-                    return self.usuarios_autenticados[i]  
+            if end[0] == addr[0] and end[1] == addr [1]:
+                #print(self.usuarios_autenticados[i])
+                return self.usuarios_autenticados[i]  
             i += 1
     
     @staticmethod
@@ -77,6 +98,8 @@ class Servidor:
         print('Conexão recebida de', addr)
         # Envia uma mensagem de boas-vindas para o cliente
         client_socket.send(b'Obrigado por se conectar!')
+        resposta = ""
+
         while True:
             msg = client_socket.recv(1024)
             if not msg: break
@@ -86,58 +109,122 @@ class Servidor:
             # REGISTRO
             if mensagem[0] ==  "REGISTRO":              
                 nome_usuario = mensagem[1]
-                resposta = self.registro_usuario(self, nome_usuario,addr)
-                client_socket.send(resposta.encode())
+                resposta = self.registro_usuario(self, nome_usuario, addr)
             
-             # AUTENTICACAO
+            # AUTENTICACAO
             if mensagem[0] ==  "AUTENTICACAO":              
                 nome_usuario = mensagem[1]
-                resposta = self.autentifica_usuario(self, nome_usuario,addr)
+                resposta = self.autentifica_usuario(self, nome_usuario, addr)
                 # AQUI TERA QUE PASSAR A CHAVE PUBLICA DO SERVIDOR PARA O USUARIO
                 # Fazer isso posteriomente
-                client_socket.send(resposta.encode())
 
             # CRIAR SALA
-            if mensagem[0] == "CRIAR_SALA":   
+            if mensagem[0] == "CRIAR_SALA":
                 privacidade = mensagem[1]
                 nome_da_sala = mensagem[2]
+                nome_usuario = self.identifica_usuario(self, addr)
                 if privacidade == "PRIVADA":
                     if len(mensagem) > 3:
                         senha = mensagem[3]
-                        new_sala = Sala(nome_da_sala, addr, senha)
+                        new_sala = Sala(nome_da_sala, nome_usuario, senha)
                         self.salas.append(new_sala)
-                        print(senha)
+                        resposta = "Sala criada!"
                     else:
-                        client_socket.send(b'ERRO : Ausencia de senha para sala PRIVADA')
+                        resposta = "ERRO : Ausencia de senha para sala PRIVADA"
 
                 else:
-                    new_sala = Sala(nome_da_sala, addr)
+                    new_sala = Sala(nome_da_sala, nome_usuario)
                     self.salas.append(new_sala)
+                    resposta = "Sala criada!"
 
             # ENTRAR NA SALA
             if mensagem[0] == "ENTRAR_SALA":
-                pass
+                nome_usuario = self.identifica_usuario(self, addr)
+                nome_da_sala = mensagem[1]
+                indice_sala = self.encontrar_sala(nome_da_sala)
+
+                if indice_sala == -1:
+                    resposta = "Sala não encontrada!"
+
+                else:
+                    resposta = self.salas[indice_sala].add_new_client(nome)
+
+            # SAIR_SALA
+            if mensagem[0] == "SAIR_SALA":
+                nome_usuario = self.identifica_usuario(self, addr)
+                nome_da_sala = mensagem[1]
+                indice_sala = self.encontrar_sala(nome_da_sala)
+
+                if indice_sala == -1:
+                    resposta = "Sala não encontrada!"
+
+                else:
+                    self.salas[indice_sala].remove_client(nome_usuario, nome_usuario)
+                    resposta = "Voce saiu da Sala!"
 
             # LISTAR_SALAS
             if mensagem[0] == "LISTAR_SALAS": 
                 #Funcao responsavel por verificar qual usuario solicitou a informação
                 nome=self.identifica_usuario(self,addr)
-                indice_sala = self.encontrar_sala(nome)
-                self.salas[indice_sala].list_clients()
-
-            # SAIR_SALA
+                resposta = "Lista de salas: "
+                for sala in self.salas:
+                    resposta = resposta + sala.sala_name + ", "
 
             # BANIR_USUARIO
+            if mensagem[0] == "BANIR_USUARIO":
+                nome_usuario = self.identifica_usuario(self, addr)
+                nome_da_sala = mensagem[1]
+                usuario_banido = mensagem[2]
+                indice_sala = self.encontrar_sala(nome_da_sala)
+
+                if indice_sala == -1:
+                    resposta = "Sala não encontrada!"
+
+                else:
+                    self.salas[indice_sala].remove_client(nome_usuario, usuario_banido)
+                    resposta = "Usuario Banido!"
+
+            # SAIR DO SISTEMA
+            if mensagem[0] == "DESCONECTAR":
+                print("Cliente ", self.identifica_usuario(self,addr), " desconectado")
+                resposta = "Desconectado do servidor!"
+
+            # LISTAR USUARIOS DE UMA SALA
+            if mensagem[0] == "LISTAR_USUARIOS":
+                nome_da_sala = mensagem[2]
+                indice_sala = self.encontrar_sala(nome_da_sala)
+
+                if indice_sala == -1:
+                    resposta = "Sala não encontrada!"
+
+                else:
+                    resposta = self.salas[indice_sala].list_clients()
+
+            client_socket.send(resposta.encode())
+            self.salvar_salas_csv()
+                    
         # Fecha a conexão com o cliente
         client_socket.close()
 
     def encontrar_sala(self, nome_da_sala):
-        for i in range(self.salas):
+        for i in range(len(self.salas)):
             if self.salas[i] == nome_da_sala:
                 return i
+            
+        return -1
+    
+    def salvar_salas_csv(self):
+        with open("SalasCadastradas.csv", "a") as file:
+            for sala in self.salas:
+                todos_os_usuarios = ""
+                for i in range(len(sala.clients)):
+                    todos_os_usuarios = todos_os_usuarios + sala.clients[i] + " "
+                file.write(sala.sala_name + "," + sala.admin + "," + sala.password + "," + todos_os_usuarios + "\n")
+
     
     def main(self):
         # Carrega a lista de usuarios que ja foram cadastrados no Sistema
+        self.carrega_salas(self)
         self.usuarios_cadastrados = self.carrega_usuario(self)
         # Cria um objeto de socket
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -152,7 +239,7 @@ class Servidor:
         server_socket.bind((host, port))
 
         # Começa a escutar por conexões
-        server_socket.listen(500)
+        server_socket.listen(900)
         print("Aguardando conexões...")
 
         while True:

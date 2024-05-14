@@ -1,8 +1,4 @@
 class Sala:
-    
-    def __init__(self):
-        print("Sem parametros")
-        pass
 
     def __init__(self, sala_name, creator, password = ""):
         self.sala_name = sala_name
@@ -13,16 +9,20 @@ class Sala:
     def add_new_client(self, new_client, passw = ""):
         if self.password == passw:
             self.clients.append(new_client)
-            print("Cliente Adicionado!")
+            return "Entrou em " + self.sala_name
 
         else:
-            print("Nao foi possivel adicionar novo membro!")
+            return "Nao foi possivel adicionar novo membro!"
+        
+    def load_system(self, list_of_clients):
+        self.clients = list_of_clients
 
     def remove_client(self, requester, client2remove):
-        if self.admin == requester:
+        if self.admin == requester or requester == client2remove:
             for i in range(self.clients):
                 if self.clients[i] == client2remove:
-                    pass
+                    del(self.clients[i])
+                    return "Membro Removido!"
 
     def receive_message(self, sender, message):
         if sender in self.clients:
@@ -36,5 +36,7 @@ class Sala:
         pass
 
     def list_clients(self):
+        all_clients = ""
         for client in self.clients:
-            print(client.name)
+            all_clients = all_clients + client.name + ", "
+        return all_clients
