@@ -45,7 +45,12 @@ class Servidor:
         # Carregar usuários cadastrados de algum lugar
         csv_salas = pd.read_csv('SalasCadastradas.csv')
         for i in range(len(csv_salas)):
-            new_sala = Sala(str(csv_salas["NOME"][i]), str(csv_salas["CRIADOR"][i]), str(csv_salas["SENHA"][i]))
+            if str(csv_salas["SENHA"][i]) != "nan":
+                new_sala = Sala(str(csv_salas["NOME"][i]), str(csv_salas["CRIADOR"][i]), str(csv_salas["SENHA"][i]))
+
+            else:
+                new_sala = Sala(str(csv_salas["NOME"][i]), str(csv_salas["CRIADOR"][i]))
+
             todos_usuarios = str(csv_salas["USUARIOS"][i])
             new_sala.load_system(todos_usuarios.split(" "))
             self.salas.append(new_sala)
@@ -141,13 +146,17 @@ class Servidor:
             if mensagem[0] == "ENTRAR_SALA":
                 nome_usuario = self.identifica_usuario(self, addr)
                 nome_da_sala = mensagem[1]
+                senha = " "
+                if len(mensagem) > 2:
+                    senha = mensagem[2]
+
                 indice_sala = self.encontrar_sala(nome_da_sala)
 
                 if indice_sala == -1:
                     resposta = "Sala não encontrada!"
 
                 else:
-                    resposta = self.salas[indice_sala].add_new_client(nome)
+                    resposta = self.salas[indice_sala].add_new_client(nome_usuario, senha)
 
             # SAIR_SALA
             if mensagem[0] == "SAIR_SALA":
@@ -159,8 +168,7 @@ class Servidor:
                     resposta = "Sala não encontrada!"
 
                 else:
-                    self.salas[indice_sala].remove_client(nome_usuario, nome_usuario)
-                    resposta = "Voce saiu da Sala!"
+                    resposta = self.salas[indice_sala].remove_client(nome_usuario, nome_usuario)
 
             # LISTAR_SALAS
             if mensagem[0] == "LISTAR_SALAS": 
@@ -181,8 +189,7 @@ class Servidor:
                     resposta = "Sala não encontrada!"
 
                 else:
-                    self.salas[indice_sala].remove_client(nome_usuario, usuario_banido)
-                    resposta = "Usuario Banido!"
+                    resposta = self.salas[indice_sala].remove_client(nome_usuario, usuario_banido)
 
             # SAIR DO SISTEMA
             if mensagem[0] == "DESCONECTAR":
@@ -208,12 +215,15 @@ class Servidor:
 
     def encontrar_sala(self, nome_da_sala):
         for i in range(len(self.salas)):
-            if self.salas[i] == nome_da_sala:
+            if self.salas[i].sala_name == nome_da_sala:
                 return i
             
         return -1
     
     def salvar_salas_csv(self):
+        with open("SalasCadastradas.csv", "w") as cria:
+            cria.write("NOME,CRIADOR,SENHA,USUARIOS\n")
+
         with open("SalasCadastradas.csv", "a") as file:
             for sala in self.salas:
                 todos_os_usuarios = ""

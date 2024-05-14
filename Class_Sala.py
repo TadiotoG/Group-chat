@@ -4,7 +4,7 @@ class Sala:
         self.sala_name = sala_name
         self.admin = creator
         self.password = password
-        self.clients = []
+        self.clients = [creator]
 
     def add_new_client(self, new_client, passw = ""):
         if self.password == passw:
@@ -15,15 +15,17 @@ class Sala:
             return "Nao foi possivel adicionar novo membro!"
         
     def load_system(self, list_of_clients):
-        self.clients = list_of_clients
+        if list_of_clients != "nan":
+            self.clients = list_of_clients
 
     def remove_client(self, requester, client2remove):
         if self.admin == requester or requester == client2remove:
-            for i in range(self.clients):
+            for i in range(len(self.clients)):
                 if self.clients[i] == client2remove:
                     del(self.clients[i])
                     return "Membro Removido!"
-
+        else:
+            return "Voce nao pode banir este usuario!"
     def receive_message(self, sender, message):
         if sender in self.clients:
             self.send_message_to_clients(message)
