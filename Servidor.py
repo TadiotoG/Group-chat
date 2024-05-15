@@ -96,7 +96,7 @@ class Servidor:
             #self.codigo_usuarios.append(end)
         #print(self.usuarios_autenticados[0])
         #print(addr[1])
-        return 'Usuário registrado com sucesso.'
+        return 'REGISTRO_OK'
     
     @staticmethod
     def identifica_usuario(self,addr):
@@ -159,14 +159,14 @@ class Servidor:
                             new_sala = Sala(nome_da_sala, nome_usuario, senha)
                             self.salas.append(new_sala)
                             self.salvar_salas_csv()
-                            resposta = "Sala criada!"
+                            resposta = "CRIAR_SALA_OK"
                         else:
                             resposta = "ERRO : Ausencia de senha para sala PRIVADA"
 
                     else:
                         new_sala = Sala(nome_da_sala, nome_usuario)
                         self.salas.append(new_sala)
-                        resposta = "Sala criada!"
+                        resposta = "CRIAR_SALA_OK"
                         self.salvar_salas_csv()
                 else:
                     resposta = "ERRO : Para realizar essa operacao é necessario realizar a AUTENTICACAO primeiro !!! "
@@ -213,7 +213,7 @@ class Servidor:
                 #Funcao responsavel por verificar qual usuario solicitou a informação
                 nome=self.identifica_usuario(self,addr)
                 if self.verifica_autenticidade(self,nome):
-                    resposta = "Lista de salas: "
+                    resposta = "SALAS: "
                     for sala in self.salas:
                         resposta = resposta + sala.sala_name + ", "
                 else:
