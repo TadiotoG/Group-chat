@@ -11,7 +11,7 @@ class Servidor:
         self.usuarios_cadastrados = [] # Vai ter tudo
         self.usuarios_autenticados = []  # Vai ter somente os que estao em uso a parti que o servidor comeca a rodar
         self.codigo_usuarios = [] # Armazena a porta e o ip no mesmo indice que que o autenticado
-        self.socket = [] # possivel gambiarra funcional
+        self.socket = [] # Guarda o socket de cada cliente conectado
     @staticmethod
     def carrega_usuario(self):
         try:
@@ -26,9 +26,9 @@ class Servidor:
                 writer.writerow({'NOME':'David','CHAVE PUBLICA':'123'})
                 
         # Carregar usuários cadastrados de algum lugar
-        usuarios_cadastrados = pd.read_csv('UsuariosCadastrados.csv', sep=',', encoding='latin-1')
+        self.usuarios_cadastrados = pd.read_csv('UsuariosCadastrados.csv', sep=',', encoding='latin-1')
         
-        return usuarios_cadastrados
+        return self.usuarios_cadastrados
     
     @staticmethod
     def carrega_salas(self):
@@ -64,11 +64,19 @@ class Servidor:
         user = self.usuarios_cadastrados['NOME']
         for nome in user:
             if usuario == nome:
-                self.usuarios_autenticados.append(usuario)
+                self.usuarios_autenticados.append(nome)
                 self.codigo_usuarios.append(addr)
+                #print(self.usuarios_autenticados)
                 return 'Usuário autentificado com sucesso.'    
         return 'ERRO: Não existe um usuário com este nome.'
-        
+
+    @staticmethod
+    def verifica_autenticidade(self, usuario):        
+        for nome in self.usuarios_autenticados:
+            if usuario == nome:
+               return True
+        return False
+    
     @staticmethod
     def registro_usuario(self, usuario, addr):
         #usuarios_cadastrados = self.carrega_usuario(self)
@@ -83,20 +91,20 @@ class Servidor:
             writer.writerow({'NOME': usuario, 'CHAVE PUBLICA': '123'})
             novo_usuario = pd.DataFrame({'NOME': [usuario], 'CHAVE PUBLICA': ['123']})
             self.usuarios_cadastrados = pd.concat([self.usuarios_cadastrados, novo_usuario],ignore_index=True)
-            self.usuarios_autenticados.append(usuario)
-            end = ' '.join((addr[0], str(addr[1]))) # COLOQUEI str(addr[1])
-            self.codigo_usuarios.append(end)
+            #self.usuarios_autenticados.append(usuario)
+            #end = ' '.join((addr[0], str(addr[1]))) # COLOQUEI str(addr[1])
+            #self.codigo_usuarios.append(end)
         #print(self.usuarios_autenticados[0])
         #print(addr[1])
         return 'Usuário registrado com sucesso.'
     
     @staticmethod
     def identifica_usuario(self,addr):
-        user = self.usuarios_cadastrados['NOME']        
+        #user = self.usuarios_cadastrados['NOME']        
         i = 0
         for end in self.codigo_usuarios:
             if end[0] == addr[0] and end[1] == addr [1]:
-                
+                print(self.usuarios_autenticados)
                 return self.usuarios_autenticados[i]  
             i += 1
 
@@ -141,80 +149,90 @@ class Servidor:
                 privacidade = mensagem[1]
                 nome_da_sala = mensagem[2]
                 nome_usuario = self.identifica_usuario(self, addr)
-                if -1 != self.encontrar_sala(nome_da_sala):
-                    resposta = "ERRO: Sala já existente!"
+                if self.verifica_autenticidade(self,nome_usuario):
+                    if -1 != self.encontrar_sala(nome_da_sala):
+                        resposta = "ERRO: Sala já existente!"
 
-                elif privacidade == "PRIVADA":
-                    if len(mensagem) > 3:
-                        senha = mensagem[3]
-                        new_sala = Sala(nome_da_sala, nome_usuario, senha)
-                        self.salas.append(new_sala)
-                        self.salvar_salas_csv()
-                        resposta = "Sala criada!"
+                    elif privacidade == "PRIVADA":
+                        if len(mensagem) > 3:
+                            senha = mensagem[3]
+                            new_sala = Sala(nome_da_sala, nome_usuario, senha)
+                            self.salas.append(new_sala)
+                            self.salvar_salas_csv()
+                            resposta = "Sala criada!"
+                        else:
+                            resposta = "ERRO : Ausencia de senha para sala PRIVADA"
+
                     else:
-                        resposta = "ERRO : Ausencia de senha para sala PRIVADA"
-
+                        new_sala = Sala(nome_da_sala, nome_usuario)
+                        self.salas.append(new_sala)
+                        resposta = "Sala criada!"
+                        self.salvar_salas_csv()
                 else:
-                    new_sala = Sala(nome_da_sala, nome_usuario)
-                    self.salas.append(new_sala)
-                    resposta = "Sala criada!"
-                    self.salvar_salas_csv()
-
+                    resposta = "ERRO : Para realizar essa operacao é necessario realizar a AUTENTICACAO primeiro !!! "
             # ENTRAR NA SALA
             elif mensagem[0] == "ENTRAR_SALA":
                 nome_usuario = self.identifica_usuario(self, addr)
                 nome_da_sala = mensagem[1]
                 senha = ""
-                if len(mensagem) > 2:
-                    senha = mensagem[2]
+                if self.verifica_autenticidade(self,nome_usuario):
+                    if len(mensagem) > 2:
+                        senha = mensagem[2]
 
-                indice_sala = self.encontrar_sala(nome_da_sala)
+                    indice_sala = self.encontrar_sala(nome_da_sala)
 
-                if indice_sala == -1:
-                    resposta = "ERRO: Sala não encontrada!"
+                    if indice_sala == -1:
+                        resposta = "ERRO: Sala não encontrada!"
 
+                    else:
+                        resposta = self.salas[indice_sala].add_new_client(nome_usuario, senha)
+                        self.salvar_salas_csv()
                 else:
-                    resposta = self.salas[indice_sala].add_new_client(nome_usuario, senha)
-                    self.salvar_salas_csv()
-
+                    resposta = "ERRO : Para realizar essa operacao é necessario realizar a AUTENTICACAO primeiro !!! "
+            
             # SAIR_SALA
             elif mensagem[0] == "SAIR_SALA":
                 nome_usuario = self.identifica_usuario(self, addr)
                 nome_da_sala = mensagem[1]
                 indice_sala = self.encontrar_sala(nome_da_sala)
+                if self.verifica_autenticidade(self,nome_usuario):
+                    if indice_sala == -1:
+                        resposta = "ERRO: Sala não encontrada!"
 
-                if indice_sala == -1:
-                    resposta = "ERRO: Sala não encontrada!"
-
+                    else:
+                        resposta = self.salas[indice_sala].remove_client(nome_usuario, nome_usuario)
+                        if len(self.salas[indice_sala].clients) < 1:
+                            del(self.salas[indice_sala])
+                            resposta = resposta + " E sala Fechada!"
+                        self.salvar_salas_csv()
                 else:
-                    resposta = self.salas[indice_sala].remove_client(nome_usuario, nome_usuario)
-                    if len(self.salas[indice_sala].clients) < 1:
-                        del(self.salas[indice_sala])
-                        resposta = resposta + " E sala Fechada!"
-                    self.salvar_salas_csv()
+                    resposta = "ERRO : Para realizar essa operacao é necessario realizar a AUTENTICACAO primeiro !!! "
 
             # LISTAR_SALAS
             elif mensagem[0] == "LISTAR_SALAS": 
                 #Funcao responsavel por verificar qual usuario solicitou a informação
                 nome=self.identifica_usuario(self,addr)
-                resposta = "Lista de salas: "
-                for sala in self.salas:
-                    resposta = resposta + sala.sala_name + ", "
-
+                if self.verifica_autenticidade(self,nome):
+                    resposta = "Lista de salas: "
+                    for sala in self.salas:
+                        resposta = resposta + sala.sala_name + ", "
+                else:
+                    resposta = "ERRO : Para realizar essa operacao é necessario realizar a AUTENTICACAO primeiro !!! "
             # BANIR_USUARIO
             elif mensagem[0] == "BANIR_USUARIO":
                 nome_usuario = self.identifica_usuario(self, addr)
                 nome_da_sala = mensagem[1]
                 usuario_banido = mensagem[2]
                 indice_sala = self.encontrar_sala(nome_da_sala)
+                if self.verifica_autenticidade(self,nome_usuario):
+                    if indice_sala == -1:
+                        resposta = "ERRO: Sala não encontrada!"
 
-                if indice_sala == -1:
-                    resposta = "ERRO: Sala não encontrada!"
-
+                    else:
+                        resposta = self.salas[indice_sala].remove_client(nome_usuario, usuario_banido)
+                        self.salvar_salas_csv()
                 else:
-                    resposta = self.salas[indice_sala].remove_client(nome_usuario, usuario_banido)
-                    self.salvar_salas_csv()
-
+                    resposta = "ERRO : Para realizar essa operacao é necessario realizar a AUTENTICACAO primeiro !!! "
             # SAIR DO SISTEMA
             elif mensagem[0] == "DESCONECTAR":
                 print("Cliente ", self.identifica_usuario(self,addr), " desconectado")
@@ -233,66 +251,73 @@ class Servidor:
 
             # ENVIAR MENSAGEM 
             elif mensagem[0] == "ENVIAR_MENSAGEM" :
-                nome_da_sala = mensagem[1]
-                conteudo = mensagem[2]
-                if (len(mensagem)> 2):
-                    mensagem = mensagem[3:]
-                    for i in range(len(mensagem)):
-                        conteudo = conteudo +" "+ mensagem[i]
-                indice_sala = self.encontrar_sala(nome_da_sala)
-                if indice_sala == -1:
-                    resposta = "ERRO: Sala não encontrada!"
+                nome_usuario = self.identifica_usuario(self, addr)
+                if self.verifica_autenticidade(self,nome_usuario):
+                    nome_da_sala = mensagem[1]
+                    conteudo = mensagem[2]
+                    if (len(mensagem)> 2):
+                        mensagem = mensagem[3:]
+                        for i in range(len(mensagem)):
+                            conteudo = conteudo +" "+ mensagem[i] + "\n"
+                    indice_sala = self.encontrar_sala(nome_da_sala)
+                    if indice_sala == -1:
+                        resposta = "ERRO: Sala não encontrada!"
+                    else:
+                        resposta = self.salas[indice_sala].list_clients()
+                        usuarios_da_sala =  resposta.split(', ')
+                        resposta = "Mensagem enviada"
+                        for nome in usuarios_da_sala:
+                            end_envio = self.identifica_endereco(self,nome)
+                            if end_envio != None:
+                                for i in range(len(self.socket)):
+                                    end_socket = self.socket[i].getpeername()   
+                                    print(end_envio[0])
+                                    print(end_socket[0])
+                                    print(end_envio[1])
+                                    print(end_socket[1])
+                                    if end_envio[0] != addr[0] or end_envio[1] != addr[1]:
+                                        if end_envio[0] == end_socket[0] and end_envio[1] == end_socket[1]:
+                                            cliente = self.socket[i]
+                                            conteudo = "Mensagem do grupo " + nome_da_sala + " de " + self.identifica_usuario(self,addr) + " : " + conteudo
+                                            cliente.send(conteudo.encode())
+                                            print(self.socket[i])
                 else:
-                    resposta = self.salas[indice_sala].list_clients()
-                    usuarios_da_sala =  resposta.split(', ')
-                    resposta = "Mensagem enviada"
-                    for nome in usuarios_da_sala:
-                        end_envio = self.identifica_endereco(self,nome)
-                        if end_envio != None:
-                            for i in range(len(self.socket)):
-                                end_socket = self.socket[i].getpeername()   
-                                print(end_envio[0])
-                                print(end_socket[0])
-                                print(end_envio[1])
-                                print(end_socket[1])
-                                if end_envio[0] != addr[0] or end_envio[1] != addr[1]:
-                                    if end_envio[0] == end_socket[0] and end_envio[1] == end_socket[1]:
-                                        cliente = self.socket[i]
-                                        conteudo = "Mensagem do grupo " + nome_da_sala + " de " + self.identifica_usuario(self,addr) + " : " + conteudo
-                                        cliente.send(conteudo.encode())
-                                        print(self.socket[i])
+                    resposta = "ERRO : Para realizar essa operacao é necessario realizar a AUTENTICACAO primeiro !!! "
 
             # FECHA SALA
             elif mensagem[0] == "FECHAR_SALA":
                 nome_usuario = self.identifica_usuario(self, addr)
                 nome_da_sala = mensagem[1]
                 indice_sala = self.encontrar_sala(nome_da_sala)
+                if self.verifica_autenticidade(self,nome_usuario):
+                    if indice_sala == -1:
+                        resposta = "ERRO: Sala não encontrada!"
 
-                if indice_sala == -1:
-                    resposta = "ERRO: Sala não encontrada!"
-
-                else:
-                    if self.salas[indice_sala].admin != nome_usuario:
-                        resposta = "ERRO: Voce nao tem permissao para fechar esta sala"
-                    
                     else:
-                        resposta = self.salas[indice_sala].list_clients()
-                        usuarios_da_sala =  resposta.split(', ')
-                        for nome in usuarios_da_sala:
-                            end_envio = self.identifica_endereco(self,nome)
-                            if end_envio != None:
-                                for i in range(len(self.socket)):
-                                    end_socket = self.socket[i].getpeername()
-                                    if end_envio[0] != addr[0] or end_envio[1] != addr[1]:
-                                        if end_envio[0] == end_socket[0] and end_envio[1] == end_socket[1]:
-                                            cliente = self.socket[i]
-                                            conteudo = "Sala " + nome_da_sala + " fechada!"
-                                            cliente.send(conteudo.encode())
+                        if self.salas[indice_sala].admin != nome_usuario:
+                            resposta = "ERRO: Voce nao tem permissao para fechar esta sala"
+                    
+                        else:
+                            resposta = self.salas[indice_sala].list_clients()
+                            usuarios_da_sala =  resposta.split(', ')
+                            for nome in usuarios_da_sala:
+                                end_envio = self.identifica_endereco(self,nome)
+                                if end_envio != None:
+                                    for i in range(len(self.socket)):
+                                        end_socket = self.socket[i].getpeername()
+                                        if end_envio[0] != addr[0] or end_envio[1] != addr[1]:
+                                            if end_envio[0] == end_socket[0] and end_envio[1] == end_socket[1]:
+                                                cliente = self.socket[i]
+                                                conteudo = "Sala " + nome_da_sala + " fechada!"
+                                                cliente.send(conteudo.encode())
                         
-                        del(self.salas[indice_sala])
-                        self.salvar_salas_csv()
-                        resposta = "Sala Fechada com sucesso!"
-
+                            del(self.salas[indice_sala])
+                            self.salvar_salas_csv()
+                            resposta = "Sala Fechada com sucesso!"
+                else:
+                    resposta = "ERRO : Para realizar essa operacao é necessario realizar a AUTENTICACAO primeiro !!! "
+            
+            #Caso o comando nao seja encontrado
             else:
                 resposta = "Comando Invalido!"
 
