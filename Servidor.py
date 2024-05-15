@@ -52,7 +52,10 @@ class Servidor:
                 new_sala = Sala(str(csv_salas["NOME"][i]), str(csv_salas["CRIADOR"][i]))
 
             todos_usuarios = str(csv_salas["USUARIOS"][i])
-            new_sala.load_system(todos_usuarios.split(" "))
+            lista_todos_usuarios = todos_usuarios.split(" ") # Estava pegando o espaco final como um elemento
+            del(lista_todos_usuarios[len(lista_todos_usuarios)-1]) # Retira o espaco final
+            
+            new_sala.load_system(lista_todos_usuarios)
             self.salas.append(new_sala)
         # new_sala = Sala(nome_da_sala, nome_usuario, senha)
 
@@ -138,11 +141,15 @@ class Servidor:
                 privacidade = mensagem[1]
                 nome_da_sala = mensagem[2]
                 nome_usuario = self.identifica_usuario(self, addr)
-                if privacidade == "PRIVADA":
+                if -1 != self.encontrar_sala(nome_da_sala):
+                    resposta = "ERRO: Sala já existente!"
+
+                elif privacidade == "PRIVADA":
                     if len(mensagem) > 3:
                         senha = mensagem[3]
                         new_sala = Sala(nome_da_sala, nome_usuario, senha)
                         self.salas.append(new_sala)
+                        self.salvar_salas_csv()
                         resposta = "Sala criada!"
                     else:
                         resposta = "ERRO : Ausencia de senha para sala PRIVADA"
@@ -151,6 +158,7 @@ class Servidor:
                     new_sala = Sala(nome_da_sala, nome_usuario)
                     self.salas.append(new_sala)
                     resposta = "Sala criada!"
+                    self.salvar_salas_csv()
 
             # ENTRAR NA SALA
             elif mensagem[0] == "ENTRAR_SALA":
@@ -163,10 +171,11 @@ class Servidor:
                 indice_sala = self.encontrar_sala(nome_da_sala)
 
                 if indice_sala == -1:
-                    resposta = "Sala não encontrada!"
+                    resposta = "ERRO: Sala não encontrada!"
 
                 else:
                     resposta = self.salas[indice_sala].add_new_client(nome_usuario, senha)
+                    self.salvar_salas_csv()
 
             # SAIR_SALA
             elif mensagem[0] == "SAIR_SALA":
@@ -175,10 +184,14 @@ class Servidor:
                 indice_sala = self.encontrar_sala(nome_da_sala)
 
                 if indice_sala == -1:
-                    resposta = "Sala não encontrada!"
+                    resposta = "ERRO: Sala não encontrada!"
 
                 else:
                     resposta = self.salas[indice_sala].remove_client(nome_usuario, nome_usuario)
+                    if len(self.salas[indice_sala].clients) < 1:
+                        del(self.salas[indice_sala])
+                        resposta = resposta + " E sala Fechada!"
+                    self.salvar_salas_csv()
 
             # LISTAR_SALAS
             elif mensagem[0] == "LISTAR_SALAS": 
@@ -196,10 +209,11 @@ class Servidor:
                 indice_sala = self.encontrar_sala(nome_da_sala)
 
                 if indice_sala == -1:
-                    resposta = "Sala não encontrada!"
+                    resposta = "ERRO: Sala não encontrada!"
 
                 else:
                     resposta = self.salas[indice_sala].remove_client(nome_usuario, usuario_banido)
+                    self.salvar_salas_csv()
 
             # SAIR DO SISTEMA
             elif mensagem[0] == "DESCONECTAR":
@@ -212,7 +226,7 @@ class Servidor:
                 indice_sala = self.encontrar_sala(nome_da_sala)
 
                 if indice_sala == -1:
-                    resposta = "Sala não encontrada!"
+                    resposta = "ERRO: Sala não encontrada!"
 
                 else:
                     resposta = self.salas[indice_sala].list_clients()
@@ -227,7 +241,7 @@ class Servidor:
                         conteudo = conteudo +" "+ mensagem[i]
                 indice_sala = self.encontrar_sala(nome_da_sala)
                 if indice_sala == -1:
-                    resposta = "Sala não encontrada!"
+                    resposta = "ERRO: Sala não encontrada!"
                 else:
                     resposta = self.salas[indice_sala].list_clients()
                     usuarios_da_sala =  resposta.split(', ')
@@ -247,17 +261,43 @@ class Servidor:
                                         conteudo = "Mensagem do grupo " + nome_da_sala + " de " + self.identifica_usuario(self,addr) + " : " + conteudo
                                         cliente.send(conteudo.encode())
                                         print(self.socket[i])
-                                        
-
-
 
             # FECHA SALA
+            elif mensagem[0] == "FECHAR_SALA":
+                nome_usuario = self.identifica_usuario(self, addr)
+                nome_da_sala = mensagem[1]
+                indice_sala = self.encontrar_sala(nome_da_sala)
+
+                if indice_sala == -1:
+                    resposta = "ERRO: Sala não encontrada!"
+
+                else:
+                    if self.salas[indice_sala].admin != nome_usuario:
+                        resposta = "ERRO: Voce nao tem permissao para fechar esta sala"
+                    
+                    else:
+                        resposta = self.salas[indice_sala].list_clients()
+                        usuarios_da_sala =  resposta.split(', ')
+                        for nome in usuarios_da_sala:
+                            end_envio = self.identifica_endereco(self,nome)
+                            if end_envio != None:
+                                for i in range(len(self.socket)):
+                                    end_socket = self.socket[i].getpeername()
+                                    if end_envio[0] != addr[0] or end_envio[1] != addr[1]:
+                                        if end_envio[0] == end_socket[0] and end_envio[1] == end_socket[1]:
+                                            cliente = self.socket[i]
+                                            conteudo = "Sala " + nome_da_sala + " fechada!"
+                                            cliente.send(conteudo.encode())
+                        
+                        del(self.salas[indice_sala])
+                        self.salvar_salas_csv()
+                        resposta = "Sala Fechada com sucesso!"
 
             else:
                 resposta = "Comando Invalido!"
+
             resposta = 'Mensagem do servidor: ' + resposta
             client_socket.send(resposta.encode())
-            self.salvar_salas_csv()
                     
         # Fecha a conexão com o cliente
         client_socket.close()
