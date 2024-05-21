@@ -1,37 +1,47 @@
+#pip install pycryptodome
+#pip install cryptography
+
 import socket
 import os
+import base64
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.backends import default_backend
 from base64 import b64encode, b64decode
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from Crypto.Cipher import AES
+from Crypto.Util.Padding import pad
+from Crypto.Util.Padding import unpad
 
+# Função para criptografar a mensagem
+def encrypt_message(key, iv, message):
+    cipher = AES.new(key, AES.MODE_CBC, iv)
+    encrypted_message = base64.b64encode(cipher.encrypt(pad(message.encode(), AES.block_size)))
+    return encrypted_message
+
+# Função para descriptografar a mensagem
+def decrypt_message(key, iv, encrypted_message):
+    cipher = AES.new(key, AES.MODE_CBC, iv)
+    decrypted_message = unpad(cipher.decrypt(base64.b64decode(encrypted_message)), AES.block_size)
+    return decrypted_message
 
 # Cria um objeto de socket
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-# Aqui deve adicionar o IP do servidor
 host = socket.gethostname()
-
-# Define a porta em que o servidor está escutando
 port = 12345
 
 # Conecta ao servidor
 client_socket.connect((host, port))
+
 #chave assimetrica
+# Gera uma chave e um IV aleatórios
 key = os.urandom(32)
-#Vetor de inicializacao
 iv = os.urandom(16)
-# Escolha o backend padrão
-backend = default_backend()
+chaves = key + iv
+print(f'Chave gerada: {key}')
+print(f'IV gerado: {iv}')
 
 
-# Criando o objeto que criptografa AES com a chave gerada 
-aes = algorithms.AES(key)
-cbc = modes.CBC(iv)
-cipher =  Cipher (aes, cbc, backend=backend)
-chave_Simetrica= cipher.encryptor()
-print(cipher)
 # Recebe dados do servidor
 data = client_socket.recv(1024)
 print('Mensagem do servidor:', data.decode())
@@ -40,10 +50,18 @@ controle = 0
 while(True):
      # Cria uma nova thread para lidar com a conexão
     msg = input('Envie um mensagem : ')
-    client_socket.send(msg.encode())
+    mensagem_cliente = msg.split(" ")
+    if (mensagem_cliente[0] ==  "REGISTRO"):
+        client_socket.send(msg.encode())
+    elif (mensagem_cliente[0] ==  "AUTENTICACAO"):
+        client_socket.send(msg.encode())
+    else :
+        encrypted_message = encrypt_message(key, iv, msg)        
+        client_socket.send(encrypted_message)
+
     data = client_socket.recv(1024)
     msg_servidor = data.decode()       
-    print("Mensagem Servidor :" , msg_servidor)
+    print("Mensagem Servidor : \n" , msg_servidor)
     mensagem =  msg_servidor.split(" ")          
     
     if (mensagem[0] == 'CHAVE_PUBLICA' ):
@@ -53,13 +71,16 @@ while(True):
             public_key_bytes,
             backend=default_backend()
         )
-        # Finalize a operação de criptografia para obter a chave simétrica criptografada
-        texto_para_ser_criptografado = chave_Simetrica.finalize()
-        #texto_para_ser_criptografado = cipher 
-        # Cifrar a chave simétrica com a chave pública
-        print(texto_para_ser_criptografado)
+        print(public_key)
+        # Envia a chave para o servidor
+        #client_socket.send(key)
+
+        # Envia o IV para o servidor
+        #client_socket.send(iv)
+        
+        
         texto_criptografado = public_key.encrypt(
-            texto_para_ser_criptografado,
+            chaves,
             padding.OAEP(
                 mgf=padding.MGF1(algorithm=hashes.SHA256()),
                 algorithm=hashes.SHA256(),

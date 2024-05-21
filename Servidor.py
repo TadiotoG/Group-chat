@@ -2,14 +2,18 @@ import socket
 import threading
 import csv
 import pandas as pd
+import os
+import base64
 from Class_Sala import Sala
-#Você não precisa nem puxar o cryptography por algum motivo, mas deve
-#puxar alguns itens de dentro dele
 from cryptography.hazmat.primitives import serialization,hashes
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.backends import default_backend
 from base64 import b64encode, b64decode
- 
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from Crypto.Cipher import AES
+from Crypto.Util.Padding import pad
+from Crypto.Util.Padding import unpad
+
 class Servidor:
     def __init__(self): # Se nao passar parametros cria novo servidor
         self.clientes = []
@@ -37,6 +41,21 @@ class Servidor:
         
         return self.usuarios_cadastrados
     
+    # Função para criptografar a mensagem
+    @staticmethod
+    def encrypt_message(key, iv, message):
+        cipher = AES.new(key, AES.MODE_CBC, iv)
+        encrypted_message = base64.b64encode(cipher.encrypt(pad(message.encode(), AES.block_size)))
+        return encrypted_message
+
+    # Função para descriptografar a mensagem
+    @staticmethod
+    def decrypt_message(key, iv, encrypted_message):
+        cipher = AES.new(key, AES.MODE_CBC, iv)
+        decrypted_message = unpad(cipher.decrypt(base64.b64decode(encrypted_message)), AES.block_size)
+        return decrypted_message    
+
+    @staticmethod
     def obter_chave_publica_codificada(self):
         # Serializar a chave pública
         chave_publica_serializada = self.chave_publica.public_bytes(
@@ -46,7 +65,7 @@ class Servidor:
         # Codificar em Base64 e retornar
         chave_publica_codificada = b64encode(chave_publica_serializada).decode('utf-8')
         return chave_publica_codificada
-
+    @staticmethod
     def obter_chave_privada(self):
         # Serializar a chave privada
         chave_privada_serializada = self.chave_privada.private_bytes(
@@ -93,9 +112,6 @@ class Servidor:
         user = self.usuarios_cadastrados['NOME']
         for nome in user:
             if usuario == nome:
-                self.usuarios_autenticados.append(nome)
-                self.codigo_usuarios.append(addr)
-                #print(self.usuarios_autenticados)
                 return True    
         return False
 
@@ -107,6 +123,16 @@ class Servidor:
         return False
     
     @staticmethod
+    def grava_autentifica_usuario(self, usuario, addr, chave): 
+        user = self.usuarios_cadastrados['NOME']
+        for nome in user:
+            if usuario == nome:
+                self.usuarios_autenticados.append(nome)
+                self.codigo_usuarios.append(addr)
+                self.chave_simetrica.append(chave)
+                return True    
+        return False
+    @staticmethod
     def registro_usuario(self, usuario, addr):
         #usuarios_cadastrados = self.carrega_usuario(self)
         user = self.usuarios_cadastrados['NOME']
@@ -115,10 +141,10 @@ class Servidor:
                 return 'ERRO: Já existe um usuário com este nome.'
         
         with open('UsuariosCadastrados.csv', 'a', newline='') as csvfile:
-            fieldnames = ['NOME', 'CHAVE PUBLICA']
+            fieldnames = ['NOME']
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-            writer.writerow({'NOME': usuario, 'CHAVE PUBLICA': '123'})
-            novo_usuario = pd.DataFrame({'NOME': [usuario], 'CHAVE PUBLICA': ['123']})
+            writer.writerow({'NOME': usuario})
+            novo_usuario = pd.DataFrame({'NOME': [usuario]})
             self.usuarios_cadastrados = pd.concat([self.usuarios_cadastrados, novo_usuario],ignore_index=True)
             #self.usuarios_autenticados.append(usuario)
             #end = ' '.join((addr[0], str(addr[1]))) # COLOQUEI str(addr[1])
@@ -137,6 +163,15 @@ class Servidor:
                 return self.usuarios_autenticados[i]  
             i += 1
 
+    @staticmethod
+    def identifica_chave(self,addr):
+        #user = self.usuarios_cadastrados['NOME']        
+        i = 0
+        for end in self.codigo_usuarios:
+            if end[0] == addr[0] and end[1] == addr [1]:
+                #print(self.usuarios_autenticados)
+                return self.chave_simetrica[i]  
+            i += 1
     @staticmethod
     def identifica_endereco(self,nome_buscado):   
         i = 0
@@ -158,9 +193,33 @@ class Servidor:
         while True:
             msg = client_socket.recv(1024)
             if not msg: break
-            print('Mensagem do cliente:', msg.decode())
-            msg = msg.decode()       
-            mensagem =  msg.split(" ")
+            #print('Mensagem do cliente:', msg.decode())
+            #msg = msg.decode() 
+            #msg = msg.decode(errors='ignore')  # Tentativa de decodificação ignorando erros
+            if " " in msg.decode():
+            #if msg:
+            #if isinstance(msg, bytes):
+              #try:
+                print("TESTE 0")
+                msg = msg.decode()                
+                mensagem =  msg.split(" ")
+                print('Mensagem do cliente:', msg)
+                #except:
+            else:
+                print("TESTE")
+                chave_simetrica = self.identifica_chave(self, addr)                
+                #msg = b64decode(msg)
+                print(chave_simetrica)
+                key = chave_simetrica[:32]
+                iv = chave_simetrica[32:]
+                print("Chave " , key)
+                print("IV ", iv)
+                msg = self.decrypt_message(key, iv, msg)
+                msg = msg.decode()
+                mensagem =  msg.split(" ")
+                print(mensagem)
+                
+
             # REGISTRO
             if mensagem[0] ==  "REGISTRO":              
                 nome_usuario = mensagem[1]
@@ -170,14 +229,14 @@ class Servidor:
             elif mensagem[0] ==  "AUTENTICACAO":              
                 nome_usuario = mensagem[1]
                 if(self.autentifica_usuario(self, nome_usuario, addr)):
-                    resposta = "CHAVE_PUBLICA " + self.chave_publica_codificada           
-                       
+                    resposta = "CHAVE_PUBLICA " + self.chave_publica_codificada       
             
 
             elif mensagem[0] == "CHAVE_SIMETRICA":
+                print("Tesereads")
                 chave_simetrica = b64decode(mensagem[1])
                 print(mensagem[1])
-                decrypted_message = self.chave_privada.decrypt(
+                chave_simetrica_decrypted = self.chave_privada.decrypt(
                     chave_simetrica,
                     padding.OAEP(
                         mgf=padding.MGF1(algorithm=hashes.SHA256()),
@@ -185,7 +244,9 @@ class Servidor:
                         label=None
                     )
                 )
-                print(decrypted_message)
+                print(chave_simetrica_decrypted)
+                self.grava_autentifica_usuario(self, nome_usuario, addr, chave_simetrica_decrypted)
+                
 
 
 
@@ -400,8 +461,9 @@ class Servidor:
         )
         # Extrair a chave pública da chave privada
         self.chave_publica = self.chave_privada.public_key()
-        self.chave_publica_codificada = self.obter_chave_publica_codificada()
-        #self.chave_privada = self.obter_chave_privada()
+        
+        self.chave_publica_codificada = self.obter_chave_publica_codificada(self)
+       
         # Carrega a lista de usuarios que ja foram cadastrados no Sistema
         self.carrega_salas(self)
         self.usuarios_cadastrados = self.carrega_usuario(self)
