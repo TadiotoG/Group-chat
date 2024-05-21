@@ -3,7 +3,13 @@ import threading
 import csv
 import pandas as pd
 from Class_Sala import Sala
-
+#Você não precisa nem puxar o cryptography por algum motivo, mas deve
+#puxar alguns itens de dentro dele
+from cryptography.hazmat.primitives import serialization,hashes
+from cryptography.hazmat.primitives.asymmetric import rsa, padding
+from cryptography.hazmat.backends import default_backend
+from base64 import b64encode, b64decode
+ 
 class Servidor:
     def __init__(self): # Se nao passar parametros cria novo servidor
         self.clientes = []
@@ -12,6 +18,7 @@ class Servidor:
         self.usuarios_autenticados = []  # Vai ter somente os que estao em uso a parti que o servidor comeca a rodar
         self.codigo_usuarios = [] # Armazena a porta e o ip no mesmo indice que que o autenticado
         self.socket = [] # Guarda o socket de cada cliente conectado
+        self.chave_simetrica = []
     @staticmethod
     def carrega_usuario(self):
         try:
@@ -21,15 +28,37 @@ class Servidor:
             print('Criando Servidor ...')
             print('Servidor Criado')            
             with open('UsuariosCadastrados.csv', 'w', newline='') as csvfile:
-                writer = csv.DictWriter(csvfile, fieldnames= ['NOME','CHAVE PUBLICA'])
+                writer = csv.DictWriter(csvfile, fieldnames= ['NOME'])
                 writer.writeheader()
-                writer.writerow({'NOME':'David','CHAVE PUBLICA':'123'})
+                writer.writerow({'NOME':'David'})
                 
         # Carregar usuários cadastrados de algum lugar
         self.usuarios_cadastrados = pd.read_csv('UsuariosCadastrados.csv', sep=',', encoding='latin-1')
         
         return self.usuarios_cadastrados
     
+    def obter_chave_publica_codificada(self):
+        # Serializar a chave pública
+        chave_publica_serializada = self.chave_publica.public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo
+        )
+        # Codificar em Base64 e retornar
+        chave_publica_codificada = b64encode(chave_publica_serializada).decode('utf-8')
+        return chave_publica_codificada
+
+    def obter_chave_privada(self):
+        # Serializar a chave privada
+        chave_privada_serializada = self.chave_privada.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.TraditionalOpenSSL,
+            encryption_algorithm=serialization.NoEncryption()
+        )
+        # Codificar em Base64 e retornar
+        #chave_privada_codificada = b64encode(chave_privada_serializada).decode('utf-8')
+        return chave_privada_serializada
+
+
     @staticmethod
     def carrega_salas(self):
         try:
@@ -67,8 +96,8 @@ class Servidor:
                 self.usuarios_autenticados.append(nome)
                 self.codigo_usuarios.append(addr)
                 #print(self.usuarios_autenticados)
-                return 'Usuário autentificado com sucesso.'    
-        return 'ERRO: Não existe um usuário com este nome.'
+                return True    
+        return False
 
     @staticmethod
     def verifica_autenticidade(self, usuario):        
@@ -140,9 +169,25 @@ class Servidor:
             # AUTENTICACAO
             elif mensagem[0] ==  "AUTENTICACAO":              
                 nome_usuario = mensagem[1]
-                resposta = self.autentifica_usuario(self, nome_usuario, addr)
-                # AQUI TERA QUE PASSAR A CHAVE PUBLICA DO SERVIDOR PARA O USUARIO
-                # Fazer isso posteriomente
+                if(self.autentifica_usuario(self, nome_usuario, addr)):
+                    resposta = "CHAVE_PUBLICA " + self.chave_publica_codificada           
+                       
+            
+
+            elif mensagem[0] == "CHAVE_SIMETRICA":
+                chave_simetrica = b64decode(mensagem[1])
+                print(mensagem[1])
+                decrypted_message = self.chave_privada.decrypt(
+                    chave_simetrica,
+                    padding.OAEP(
+                        mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                        algorithm=hashes.SHA256(),
+                        label=None
+                    )
+                )
+                print(decrypted_message)
+
+
 
             # CRIAR SALA
             elif mensagem[0] == "CRIAR_SALA":
@@ -321,7 +366,7 @@ class Servidor:
             else:
                 resposta = "Comando Invalido!"
 
-            resposta = 'Mensagem do servidor: ' + resposta
+            
             client_socket.send(resposta.encode())
                     
         # Fecha a conexão com o cliente
@@ -347,6 +392,16 @@ class Servidor:
 
     
     def main(self):
+        
+        self.chave_privada = rsa.generate_private_key(
+            public_exponent=65537,
+            key_size=1024,
+            backend=default_backend()
+        )
+        # Extrair a chave pública da chave privada
+        self.chave_publica = self.chave_privada.public_key()
+        self.chave_publica_codificada = self.obter_chave_publica_codificada()
+        #self.chave_privada = self.obter_chave_privada()
         # Carrega a lista de usuarios que ja foram cadastrados no Sistema
         self.carrega_salas(self)
         self.usuarios_cadastrados = self.carrega_usuario(self)
