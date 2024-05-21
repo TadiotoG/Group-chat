@@ -23,6 +23,7 @@ class Servidor:
         self.codigo_usuarios = [] # Armazena a porta e o ip no mesmo indice que que o autenticado
         self.socket = [] # Guarda o socket de cada cliente conectado
         self.chave_simetrica = []
+        self.controle_crip = False
     @staticmethod
     def carrega_usuario(self):
         try:
@@ -132,6 +133,7 @@ class Servidor:
                 self.chave_simetrica.append(chave)
                 return True    
         return False
+    
     @staticmethod
     def registro_usuario(self, usuario, addr):
         #usuarios_cadastrados = self.carrega_usuario(self)
@@ -200,24 +202,26 @@ class Servidor:
             #if msg:
             #if isinstance(msg, bytes):
               #try:
-                print("TESTE 0")
+                #print("TESTE 0")
+                self.controle_crip = False
                 msg = msg.decode()                
                 mensagem =  msg.split(" ")
                 print('Mensagem do cliente:', msg)
                 #except:
             else:
-                print("TESTE")
+                self.controle_crip = True
+                #print("TESTE")
                 chave_simetrica = self.identifica_chave(self, addr)                
                 #msg = b64decode(msg)
-                print(chave_simetrica)
+                #print(chave_simetrica)
                 key = chave_simetrica[:32]
                 iv = chave_simetrica[32:]
-                print("Chave " , key)
-                print("IV ", iv)
+                #print("Chave " , key)
+                #print("IV ", iv)
                 msg = self.decrypt_message(key, iv, msg)
                 msg = msg.decode()
                 mensagem =  msg.split(" ")
-                print(mensagem)
+                #print(mensagem)
                 
 
             # REGISTRO
@@ -233,9 +237,9 @@ class Servidor:
             
 
             elif mensagem[0] == "CHAVE_SIMETRICA":
-                print("Tesereads")
+                
                 chave_simetrica = b64decode(mensagem[1])
-                print(mensagem[1])
+                #print(mensagem[1])
                 chave_simetrica_decrypted = self.chave_privada.decrypt(
                     chave_simetrica,
                     padding.OAEP(
@@ -244,7 +248,7 @@ class Servidor:
                         label=None
                     )
                 )
-                print(chave_simetrica_decrypted)
+                #print(chave_simetrica_decrypted)
                 self.grava_autentifica_usuario(self, nome_usuario, addr, chave_simetrica_decrypted)
                 
 
@@ -293,10 +297,24 @@ class Servidor:
                     else:
                         resposta = self.salas[indice_sala].add_new_client(nome_usuario, senha)
                         self.salvar_salas_csv()
+                        usuarios = self.salas[indice_sala].list_clients()
+                        usuarios_da_sala =  usuarios.split(', ')                       
+                        for nome in usuarios_da_sala:
+                            end_envio = self.identifica_endereco(self,nome)
+                            if end_envio != None:
+                                for i in range(len(self.socket)):
+                                    end_socket = self.socket[i].getpeername()
+                                    if end_envio[0] != addr[0] or end_envio[1] != addr[1]:
+                                        if end_envio[0] == end_socket[0] and end_envio[1] == end_socket[1]:
+                                            cliente = self.socket[i]
+                                            conteudo = "ENTROU " + nome_da_sala + " " + nome_usuario
+                                            cliente.send(conteudo.encode())
+
                 else:
                     resposta = "ERRO : Para realizar essa operacao é necessario realizar a AUTENTICACAO primeiro !!! "
             
             # SAIR_SALA
+            # Tadioto verificar na especificacao e ajeitar algumas saidas de acordo com oque foi pedido
             elif mensagem[0] == "SAIR_SALA":
                 nome_usuario = self.identifica_usuario(self, addr)
                 nome_da_sala = mensagem[1]
@@ -335,7 +353,7 @@ class Servidor:
                         resposta = "ERRO: Sala não encontrada!"
 
                     else:
-                        resposta = self.salas[indice_sala].remove_client(nome_usuario, usuario_banido)
+                        resposta = self.salas[indice_sala].remove_client(nome_usuario, usuario_banido) #BANIMENTO_OK
                         self.salvar_salas_csv()
                 else:
                     resposta = "ERRO : Para realizar essa operacao é necessario realizar a AUTENTICACAO primeiro !!! "
@@ -377,16 +395,16 @@ class Servidor:
                             if end_envio != None:
                                 for i in range(len(self.socket)):
                                     end_socket = self.socket[i].getpeername()   
-                                    print(end_envio[0])
-                                    print(end_socket[0])
-                                    print(end_envio[1])
-                                    print(end_socket[1])
+                                    #print(end_envio[0])
+                                    #print(end_socket[0])
+                                    #print(end_envio[1])
+                                    #print(end_socket[1])
                                     if end_envio[0] != addr[0] or end_envio[1] != addr[1]:
                                         if end_envio[0] == end_socket[0] and end_envio[1] == end_socket[1]:
                                             cliente = self.socket[i]
-                                            conteudo = "Mensagem do grupo " + nome_da_sala + " de " + self.identifica_usuario(self,addr) + " : " + conteudo
+                                            conteudo = "MENSAGEM " + nome_da_sala + " " + self.identifica_usuario(self,addr) + " " + conteudo
                                             cliente.send(conteudo.encode())
-                                            print(self.socket[i])
+                                            #print(self.socket[i])
                 else:
                     resposta = "ERRO : Para realizar essa operacao é necessario realizar a AUTENTICACAO primeiro !!! "
 
@@ -417,19 +435,34 @@ class Servidor:
                                                 conteudo = "Sala " + nome_da_sala + " fechada!"
                                                 cliente.send(conteudo.encode())
                         
-                            del(self.salas[indice_sala])
+                            
                             self.salvar_salas_csv()
-                            resposta = "Sala Fechada com sucesso!"
+                            resposta = "FECHAR_SALA_OK"
+                            usuarios = self.salas[indice_sala].list_clients()
+                            usuarios_da_sala =  usuarios.split(', ')     
+                            del(self.salas[indice_sala])                  
+                            for nome in usuarios_da_sala:
+                                end_envio = self.identifica_endereco(self,nome)
+                                if end_envio != None:
+                                    for i in range(len(self.socket)):
+                                        end_socket = self.socket[i].getpeername()
+                                        if end_envio[0] != addr[0] or end_envio[1] != addr[1]:
+                                            if end_envio[0] == end_socket[0] and end_envio[1] == end_socket[1]:
+                                                cliente = self.socket[i]
+                                                conteudo = "SALA_FECHADA " + nome_da_sala
+                                                cliente.send(conteudo.encode())
+                            # Após o fechamento, nenhuma outra mensagem deve enviada pelo servidor naquela sala.
                 else:
                     resposta = "ERRO : Para realizar essa operacao é necessario realizar a AUTENTICACAO primeiro !!! "
             
             #Caso o comando nao seja encontrado
             else:
-                resposta = "Comando Invalido!"
-
-            
-            client_socket.send(resposta.encode())
-                    
+                resposta = "ERRO : Comando Digitado é Invalido!"
+            if (self.controle_crip):
+                resposta_encripitada= self.encrypt_message(key, iv, resposta) 
+                client_socket.send(resposta_encripitada)
+            else:
+                client_socket.send(resposta.encode())       
         # Fecha a conexão com o cliente
         client_socket.close()
 

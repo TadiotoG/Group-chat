@@ -11,6 +11,7 @@ from base64 import b64encode, b64decode
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
 from Crypto.Util.Padding import unpad
+from hashlib import sha256
 
 # Função para criptografar a mensagem
 def encrypt_message(key, iv, message):
@@ -38,8 +39,8 @@ client_socket.connect((host, port))
 key = os.urandom(32)
 iv = os.urandom(16)
 chaves = key + iv
-print(f'Chave gerada: {key}')
-print(f'IV gerado: {iv}')
+#print(f'Chave gerada: {key}')
+#print(f'IV gerado: {iv}')
 
 
 # Recebe dados do servidor
@@ -56,13 +57,27 @@ while(True):
     elif (mensagem_cliente[0] ==  "AUTENTICACAO"):
         client_socket.send(msg.encode())
     else :
+        if (mensagem_cliente[0] == "CRIAR_SALA" ):
+            if(len(mensagem_cliente) > 3):
+                hash_senha =  sha256(mensagem_cliente[4].encode())
+                mensagem_cliente = mensagem_cliente[3:] + "["+hash_senha+"("+mensagem_cliente[4]+")]"
         encrypted_message = encrypt_message(key, iv, msg)        
         client_socket.send(encrypted_message)
 
     data = client_socket.recv(1024)
-    msg_servidor = data.decode()       
-    print("Mensagem Servidor : \n" , msg_servidor)
-    mensagem =  msg_servidor.split(" ")          
+    if " " in data.decode():
+        msg_servidor = data.decode()       
+        mensagem =  msg_servidor.split(" ")
+       
+        print("Mensagem Servidor : \n" , msg_servidor)
+    else:
+        msg = decrypt_message(key, iv, data)
+        msg_servidor = msg.decode()       
+        mensagem =  msg_servidor.split(" ")
+        
+        print("Mensagem Servidor : \n" , msg_servidor)
+
+          
     
     if (mensagem[0] == 'CHAVE_PUBLICA' ):
         public_key = mensagem[1]
@@ -71,7 +86,7 @@ while(True):
             public_key_bytes,
             backend=default_backend()
         )
-        print(public_key)
+        #print(public_key)
         # Envia a chave para o servidor
         #client_socket.send(key)
 
@@ -91,19 +106,6 @@ while(True):
         
         msg = "CHAVE_SIMETRICA " + texto_criptografado_codificado
         client_socket.send(msg.encode())
-
-        controle = 1
-    #elif (controle == 1):
-    #   data = client_socket.recv(1024)
-    #    print(data.decode())
-     #   block_size = 16 
-     #   n = len(b_MSG)
-     #   spaces_add = block_size -n  % block_size 
-    #    new_b_MSG = bytearray(MSG + ' ' * spaces_add,encoding="utf8")
-    #    texto_criptografado = chave_Simetrica.update(new_b_MSG) + chave_Simetrica.finalize()
-    
-    #else:
-     #   print('erro')
 
 
     if msg == "DESCONECTAR":
