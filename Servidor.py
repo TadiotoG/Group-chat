@@ -66,6 +66,7 @@ class Servidor:
         # Codificar em Base64 e retornar
         chave_publica_codificada = b64encode(chave_publica_serializada).decode('utf-8')
         return chave_publica_codificada
+    
     @staticmethod
     def obter_chave_privada(self):
         # Serializar a chave privada
@@ -222,7 +223,6 @@ class Servidor:
                 msg = msg.decode()
                 mensagem =  msg.split(" ")
                 #print(mensagem)
-                
 
             # REGISTRO
             if mensagem[0] ==  "REGISTRO":              
@@ -251,9 +251,6 @@ class Servidor:
                 #print(chave_simetrica_decrypted)
                 self.grava_autentifica_usuario(self, nome_usuario, addr, chave_simetrica_decrypted)
                 
-
-
-
             # CRIAR SALA
             elif mensagem[0] == "CRIAR_SALA":
                 privacidade = mensagem[1]
