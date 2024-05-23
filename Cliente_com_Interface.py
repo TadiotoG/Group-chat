@@ -339,12 +339,14 @@ while(not autenticado):
         client_socket.send(msg.encode())
 
     data = client_socket.recv(1024)
-    if " " in data.decode():
+    #if " " in data.decode():
+    try:
         msg_servidor = data.decode()       
         mensagem =  msg_servidor.split(" ")
         print("Mensagem Servidor : \n" , msg_servidor)
 
-    else:
+        #else:
+    except UnicodeDecodeError:
         msg = decrypt_message(key, iv, data)
         msg_servidor = msg.decode()       
         mensagem =  msg_servidor.split(" ")

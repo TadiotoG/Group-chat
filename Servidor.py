@@ -149,11 +149,7 @@ class Servidor:
             writer.writerow({'NOME': usuario})
             novo_usuario = pd.DataFrame({'NOME': [usuario]})
             self.usuarios_cadastrados = pd.concat([self.usuarios_cadastrados, novo_usuario],ignore_index=True)
-            #self.usuarios_autenticados.append(usuario)
-            #end = ' '.join((addr[0], str(addr[1]))) # COLOQUEI str(addr[1])
-            #self.codigo_usuarios.append(end)
-        #print(self.usuarios_autenticados[0])
-        #print(addr[1])
+            
         return 'REGISTRO_OK'
     
     @staticmethod
