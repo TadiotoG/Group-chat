@@ -158,7 +158,9 @@ class Servidor:
     
     @staticmethod
     def identifica_usuario(self,addr):
-        #user = self.usuarios_cadastrados['NOME']        
+        #user = self.usuarios_cadastrados['NOME'] 
+        # print("enotru")
+        # print(self.codigo_usuarios)
         i = 0
         for end in self.codigo_usuarios:
             if end[0] == addr[0] and end[1] == addr [1]:
@@ -175,6 +177,7 @@ class Servidor:
                 #print(self.usuarios_autenticados)
                 return self.chave_simetrica[i]  
             i += 1
+
     @staticmethod
     def identifica_endereco(self,nome_buscado):   
         i = 0
@@ -192,6 +195,7 @@ class Servidor:
         # Envia uma mensagem de boas-vindas para o cliente
         client_socket.send(b'Obrigado por se conectar!')
         resposta = ""
+        flag_chave_simetrica = False
 
         while True:
             msg = client_socket.recv(1024)
@@ -237,7 +241,7 @@ class Servidor:
             
 
             elif mensagem[0] == "CHAVE_SIMETRICA":
-                
+                flag_chave_simetrica = True
                 chave_simetrica = b64decode(mensagem[1])
                 #print(mensagem[1])
                 chave_simetrica_decrypted = self.chave_privada.decrypt(
@@ -253,10 +257,12 @@ class Servidor:
                 
             # CRIAR SALA
             elif mensagem[0] == "CRIAR_SALA":
+                
                 privacidade = mensagem[1]
                 nome_da_sala = mensagem[2]
                 nome_usuario = self.identifica_usuario(self, addr)
                 if self.verifica_autenticidade(self,nome_usuario):
+
                     if -1 != self.encontrar_sala(nome_da_sala):
                         resposta = "ERRO: Sala já existente!"
 
@@ -455,11 +461,14 @@ class Servidor:
             #Caso o comando nao seja encontrado
             else:
                 resposta = "ERRO : Comando Digitado é Invalido!"
-            if (self.controle_crip):
+            if (self.controle_crip and not flag_chave_simetrica):
                 resposta_encripitada= self.encrypt_message(key, iv, resposta) 
                 client_socket.send(resposta_encripitada)
-            else:
-                client_socket.send(resposta.encode())       
+            elif(not flag_chave_simetrica):
+                client_socket.send(resposta.encode()) 
+            
+            flag_chave_simetrica = False
+
         # Fecha a conexão com o cliente
         client_socket.close()
 
