@@ -59,7 +59,7 @@ class Main_Menu:
         main_frame.columnconfigure(2, weight=1)
 
         # Create the display area for messages
-        self.chat_display = scrolledtext.ScrolledText(main_frame, wrap=tk.WORD, width=100, height=30)
+        self.chat_display = scrolledtext.ScrolledText(main_frame, wrap=tk.WORD, width=70, height=30)
         self.chat_display.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
         self.chat_display.config(state=tk.DISABLED)
 
@@ -122,6 +122,9 @@ class Main_Menu:
 
         self.message_entry_banir_usuario = tk.Entry(self.text_frame, width=30)
         self.message_entry_banir_usuario.grid(row=5, column=0, padx=5, pady=8)
+
+        self.message_entry_banir_usuario2 = tk.Entry(self.text_frame, width=30)
+        self.message_entry_banir_usuario2.grid(row=5, column=1, padx=5, pady=8)
 
         # Bind the return key to send message
         self.root.bind('<Return>', self.send_message)
@@ -226,8 +229,9 @@ class Main_Menu:
 
     def banir_usuario_message(self, event=None):
         sala_name = self.message_entry_banir_usuario.get()
+        user_name = self.message_entry_banir_usuario2.get()
         if sala_name.strip():  # Check if the message is not empty
-            msg = "BANIR_USUARIO " + sala_name
+            msg = "BANIR_USUARIO " + sala_name + " " + user_name
 
             encrypted_message = encrypt_message(key, iv, msg)        
             client_socket.send(encrypted_message)
@@ -254,43 +258,6 @@ class Main_Menu:
         if message.strip():  # Check if the message is not empty
             self.display_message("User" + message)
             self.message_entry.delete(0, tk.END)
-
-    # def receive_msg(self):
-    #     data = client_socket.recv(1024)
-    #     if " " in data.decode():
-    #         msg_servidor = data.decode()
-    #         mensagem =  msg_servidor.split(" ")
-    #         self.display_message("Mensagem do servidor: " + msg_servidor)
-
-    #     else:
-    #         msg = decrypt_message(key, iv, data)
-    #         msg_servidor = msg.decode()
-    #         mensagem =  msg_servidor.split(" ")
-    #         self.display_message("Mensagem do servidor: " + msg_servidor)
-
-    #     if (mensagem[0] == 'CHAVE_PUBLICA' ):
-    #         public_key = mensagem[1]
-    #         public_key_bytes = b64decode(public_key)
-    #         public_key = serialization.load_pem_public_key(public_key_bytes, backend=default_backend())
-    #     #print(public_key)
-    #     # Envia a chave para o servidor
-    #     #client_socket.send(key)
-
-    #     # Envia o IV para o servidor
-    #     #client_socket.send(iv)
-        
-    #         texto_criptografado = public_key.encrypt(
-    #             chaves,
-    #             padding.OAEP(
-    #                 mgf=padding.MGF1(algorithm=hashes.SHA256()),
-    #                 algorithm=hashes.SHA256(),
-    #                 label=None
-    #             )
-    #         )
-    #         texto_criptografado_codificado = b64encode(texto_criptografado).decode('utf-8')
-        
-    #         msg = "CHAVE_SIMETRICA " + texto_criptografado_codificado
-    #         client_socket.send(msg.encode()) 
 
     def receive_msg(self):
         while True:
