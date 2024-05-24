@@ -143,9 +143,11 @@ class Main_Menu:
             if public_or_private.upper() == "PRIVADA":
 
                 msg = "CRIAR_SALA " + public_or_private.upper() + " "  + sala_name
-                
+
                 hash_senha =  sha256(password.encode())
-                mensagem_cliente = msg + " ["+str(hash_senha)+"("+password+")]"
+                
+                mensagem_cliente = msg + " ["+str(hash_senha.hexdigest())+"("+password+")]"
+
                 encrypted_message = encrypt_message(key, iv, mensagem_cliente)        
                 client_socket.send(encrypted_message)
 
@@ -282,7 +284,7 @@ class Main_Menu:
 
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-host = socket.gethostname()
+host = socket.gethostname() # Endereco em formato de string
 port = 12345
 
 # Conecta ao servidor

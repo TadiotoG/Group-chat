@@ -13,6 +13,7 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
 from Crypto.Util.Padding import unpad
+from hashlib import sha256
 
 class Servidor:
     def __init__(self): # Se nao passar parametros cria novo servidor
@@ -264,11 +265,28 @@ class Servidor:
 
                     elif privacidade == "PRIVADA":
                         if len(mensagem) > 3:
-                            senha = mensagem[3]
-                            new_sala = Sala(nome_da_sala, nome_usuario, senha)
-                            self.salas.append(new_sala)
-                            self.salvar_salas_csv()
-                            resposta = "CRIAR_SALA_OK"
+                            
+                            hash_pluss_senha = mensagem[3]
+
+                            new_string = hash_pluss_senha[1:len(hash_pluss_senha)-2]
+                            new_string = new_string.split("(")
+
+                            hash = new_string[0]
+                            senha = new_string[1]
+
+                            print("Senha: ", senha, "  Hash da senha: ", hash)
+
+                            hash_senha =  sha256(senha.encode())
+                            hash_senha = str(hash_senha.hexdigest())
+
+                            if hash == hash_senha:
+                                new_sala = Sala(nome_da_sala, nome_usuario, senha)
+                                self.salas.append(new_sala)
+                                self.salvar_salas_csv()
+                                resposta = "CRIAR_SALA_OK"
+
+                            else:
+                                resposta = "ERRO : Integridade comprometida!"
                         else:
                             resposta = "ERRO : Ausencia de senha para sala PRIVADA"
 
@@ -435,12 +453,11 @@ class Servidor:
                                                 conteudo = "Sala " + nome_da_sala + " fechada!"
                                                 cliente.send(conteudo.encode())
                         
-                            
-                            self.salvar_salas_csv()
                             resposta = "FECHAR_SALA_OK"
                             usuarios = self.salas[indice_sala].list_clients()
                             usuarios_da_sala =  usuarios.split(', ')     
-                            del(self.salas[indice_sala])                  
+                            del(self.salas[indice_sala])
+                            self.salvar_salas_csv()                 
                             for nome in usuarios_da_sala:
                                 end_envio = self.identifica_endereco(self,nome)
                                 if end_envio != None:
