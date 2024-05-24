@@ -381,7 +381,8 @@ class Servidor:
                     if (len(mensagem)> 2):
                         mensagem = mensagem[3:]
                         for i in range(len(mensagem)):
-                            conteudo = conteudo +" "+ mensagem[i] + "\n"
+                            conteudo = conteudo +" "+ mensagem[i] 
+                        conteudo = conteudo + "\n"
                     indice_sala = self.encontrar_sala(nome_da_sala)
                     if indice_sala == -1:
                         resposta = "ERRO: Sala não encontrada!"
@@ -458,9 +459,12 @@ class Servidor:
             else:
                 resposta = "ERRO : Comando Digitado é Invalido!"
             if (self.controle_crip and not flag_chave_simetrica):
+                print(resposta)
                 resposta_encripitada= self.encrypt_message(key, iv, resposta) 
+
                 client_socket.send(resposta_encripitada)
             elif(not flag_chave_simetrica):
+
                 client_socket.send(resposta.encode()) 
             
             flag_chave_simetrica = False
