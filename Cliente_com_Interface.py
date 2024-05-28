@@ -11,30 +11,34 @@ from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.backends import default_backend
 from base64 import b64encode, b64decode
 from Crypto.Cipher import AES
-from Crypto.Util.Padding import pad
-from Crypto.Util.Padding import unpad
+from Crypto.Random import get_random_bytes
+from Crypto.Util.Padding import pad, unpad
 from hashlib import sha256
 import threading
 
+
+
 #chave assimetrica
 # Gera uma chave e um IV aleatórios
-key = os.urandom(32)
-iv = os.urandom(16)
-chaves = key + iv
+chaves = get_random_bytes(16)  # AES usa chaves de 16 bytes (128 bits)
+print("Chave:", base64.b64encode(chaves).decode())
+cifrador = AES.new(chaves, AES.MODE_ECB)
 #print(f'Chave gerada: {key}')
 #print(f'IV gerado: {iv}')
 
 # Função para criptografar a mensagem
-def encrypt_message(key, iv, message):
-    cipher = AES.new(key, AES.MODE_CBC, iv)
-    encrypted_message = base64.b64encode(cipher.encrypt(pad(message.encode(), AES.block_size)))
-    return encrypted_message
+def encrypt_message(message):
+     # Criptografar    
+    texto_preenchido = pad(message.encode(), AES.block_size)
+    texto_cifrado = cifrador.encrypt(texto_preenchido)
+    texto_cifrado_codificado = b64encode(texto_cifrado).decode('utf-8')
+    return texto_cifrado_codificado
 
 # Função para descriptografar a mensagem
-def decrypt_message(key, iv, encrypted_message):
-    cipher = AES.new(key, AES.MODE_CBC, iv)
-    decrypted_message = unpad(cipher.decrypt(base64.b64decode(encrypted_message)), AES.block_size)
-    return decrypted_message
+def decrypt_message(texto_cifrado):
+    texto_decodificado = b64decode(texto_cifrado)
+    texto_recuperado = unpad(cifrador.decrypt(texto_decodificado), AES.block_size)
+    return texto_recuperado
 
 """/////////////////////////////////////////////////////////////////////INTERFACE GRÁFICA/////////////////////////////////////////////////////////////////////"""
 
@@ -143,12 +147,11 @@ class Main_Menu:
             if public_or_private.upper() == "PRIVADA":
 
                 msg = "CRIAR_SALA " + public_or_private.upper() + " "  + sala_name
-
-                hash_senha =  sha256(password.encode())
                 
-                mensagem_cliente = msg + " ["+str(hash_senha.hexdigest())+"("+password+")]"
-
-                encrypted_message = encrypt_message(key, iv, mensagem_cliente)        
+                hash_senha =  sha256(password.encode())
+                mensagem_cliente = msg + " ["+str(hash_senha)+"("+password+")]"
+                encrypted_message = encrypt_message(mensagem_cliente) 
+                       
                 client_socket.send(encrypted_message)
 
                 #self.receive_msg()
@@ -159,7 +162,7 @@ class Main_Menu:
             elif public_or_private.upper() == "PUBLICA":
                 msg = "CRIAR_SALA " + public_or_private.upper() + " "  + sala_name 
 
-                encrypted_message = encrypt_message(key, iv, msg)        
+                encrypted_message = encrypt_message(msg)        
                 client_socket.send(encrypted_message)
 
                 #self.receive_msg()
@@ -174,7 +177,7 @@ class Main_Menu:
         if sala_name.strip() and password.strip():  # Check if the message is not empty
             msg = "ENTRAR_SALA " + sala_name + " "  + password
 
-            encrypted_message = encrypt_message(key, iv, msg)        
+            encrypted_message = encrypt_message(msg)        
             client_socket.send(encrypted_message)
 
             #self.receive_msg()
@@ -184,7 +187,7 @@ class Main_Menu:
         else:
             msg = "ENTRAR_SALA " + sala_name
 
-            encrypted_message = encrypt_message(key, iv, msg)        
+            encrypted_message = encrypt_message(msg)        
             client_socket.send(encrypted_message)
 
             #self.receive_msg()
@@ -197,7 +200,7 @@ class Main_Menu:
         if sala_name.strip():  # Check if the message is not empty
             msg = "SAIR_SALA " + sala_name
 
-            encrypted_message = encrypt_message(key, iv, msg)        
+            encrypted_message = encrypt_message(msg)        
             client_socket.send(encrypted_message)
 
             # self.receive_msg()
@@ -210,7 +213,7 @@ class Main_Menu:
         if sala_name.strip():  # Check if the message is not empty
             msg = "ENVIAR_MENSAGEM " + sala_name + " " + mensagem_2_send
 
-            encrypted_message = encrypt_message(key, iv, msg)        
+            encrypted_message = encrypt_message(msg)        
             client_socket.send(encrypted_message)
 
             # self.receive_msg()
@@ -223,7 +226,7 @@ class Main_Menu:
         if sala_name.strip():  # Check if the message is not empty
             msg = "FECHAR_SALA " + sala_name
 
-            encrypted_message = encrypt_message(key, iv, msg)        
+            encrypted_message = encrypt_message(msg)        
             client_socket.send((encrypted_message))
 
             # self.receive_msg()
@@ -235,7 +238,7 @@ class Main_Menu:
         if sala_name.strip():  # Check if the message is not empty
             msg = "BANIR_USUARIO " + sala_name + " " + user_name
 
-            encrypted_message = encrypt_message(key, iv, msg)        
+            encrypted_message = encrypt_message(msg)        
             client_socket.send(encrypted_message)
 
             self.receive_msg()
@@ -244,7 +247,7 @@ class Main_Menu:
     def listar_sala_message(self, event=None):
         msg = "LISTAR_SALAS"
 
-        encrypted_message = encrypt_message(key, iv, msg)        
+        encrypted_message = encrypt_message(msg)        
         client_socket.send(encrypted_message)
 
         # self.receive_msg()
@@ -270,7 +273,7 @@ class Main_Menu:
                 self.display_message(msg_servidor)
 
             else:
-                msg = decrypt_message(key, iv, data)
+                msg = decrypt_message(data)
                 msg_servidor = msg.decode()
                 mensagem =  msg_servidor.split(" ")
                 self.display_message(msg_servidor)
@@ -284,7 +287,8 @@ class Main_Menu:
 
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-host = socket.gethostname() # Endereco em formato de string
+host = socket.gethostname()
+#host = "192.168.56.1"
 port = 12345
 
 # Conecta ao servidor
@@ -316,7 +320,7 @@ while(not autenticado):
 
         #else:
     except UnicodeDecodeError:
-        msg = decrypt_message(key, iv, data)
+        msg = decrypt_message(data)
         msg_servidor = msg.decode()       
         mensagem =  msg_servidor.split(" ")
         print("Mensagem Servidor : \n" , msg_servidor)
