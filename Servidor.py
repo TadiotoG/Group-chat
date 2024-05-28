@@ -298,11 +298,29 @@ class Servidor:
                         else:
                             resposta = "ERRO : Ausencia de senha para sala PRIVADA"
 
-                    else:
-                        new_sala = Sala(nome_da_sala, nome_usuario)
-                        self.salas.append(new_sala)
+                    elif privacidade == "PUBLICA":
+                        if len(mensagem) > 3:
+                            hash_pluss_senha = mensagem[3]
+
+                            new_string = hash_pluss_senha[1:len(hash_pluss_senha)-2]
+                            new_string = new_string.split("(")
+
+                            hash = new_string[0]
+                            senha = new_string[1]
+                            hash_senha =  sha256(senha.encode()).hexdigest()
+
+                            if hash == hash_senha:
+                                new_sala = Sala(nome_da_sala, nome_usuario, senha)
+                                self.salas.append(new_sala)
+                                self.salvar_salas_csv()
+
+                        else:
+                            new_sala = Sala(nome_da_sala, nome_usuario)
+                            self.salas.append(new_sala)
+                            
                         resposta = "CRIAR_SALA_OK"
                         self.salvar_salas_csv()
+
                 else:
                     resposta = "ERRO : Para realizar essa operacao é necessario realizar a AUTENTICACAO primeiro !!! "
             # ENTRAR NA SALA
