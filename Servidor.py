@@ -379,6 +379,7 @@ class Servidor:
 
                     else:
                         resposta = self.salas[indice_sala].remove_client(nome_usuario, nome_usuario)
+                        resposta = "SAIR_SALA_OK"
                         if len(self.salas[indice_sala].clients) < 1:
                             del(self.salas[indice_sala])
                             resposta = resposta + " E sala Fechada!"
