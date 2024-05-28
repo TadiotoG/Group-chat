@@ -62,10 +62,13 @@ class Servidor:
         resposta_encripitada= self.encrypt_message(cifrador, resposta) 
         client_socket.send(resposta_encripitada)
 
+    #@staticmethod
     def verifica_usuario_na_sala(self, usuario, indice_sala):
-        for nome in self.salas[indice_sala].list_clients():
+        for nome in self.salas[indice_sala].list_clients().split(", "):
             if nome == usuario:
                 return True
+            
+        print("TESTE ", self.salas[indice_sala].list_clients())
             
         return False
 
@@ -377,12 +380,15 @@ class Servidor:
                     if indice_sala == -1:
                         resposta = "ERRO: Sala não encontrada!"
 
+                    elif not self.verifica_usuario_na_sala(nome_usuario, indice_sala):
+                        resposta = "ERRO: Voce nao faz parte desta sala!"
+
                     else:
                         resposta = self.salas[indice_sala].remove_client(nome_usuario, nome_usuario)
                         resposta = "SAIR_SALA_OK"
                         if len(self.salas[indice_sala].clients) < 1:
                             del(self.salas[indice_sala])
-                            resposta = resposta + " E sala Fechada!"
+                            resposta = resposta + " e sala Fechada!"
                         self.salvar_salas_csv()
                 else:
                     resposta = "ERRO : Para realizar essa operacao é necessario realizar a AUTENTICACAO primeiro !!! "
