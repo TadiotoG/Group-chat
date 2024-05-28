@@ -52,9 +52,7 @@ class Servidor:
 
     # Função para descriptografar a mensagem
     def decrypt_message(self,cifrador,texto_cifrado):
-        print("Primeiro")
         texto_decodificado = b64decode(texto_cifrado)
-        print("Seg")
         texto_recuperado = unpad(cifrador.decrypt(texto_decodificado), AES.block_size)
         return texto_recuperado   
     
@@ -67,7 +65,6 @@ class Servidor:
     def verifica_usuario_na_sala(self, usuario, indice_sala):
         for nome in self.salas[indice_sala].list_clients():
             if nome == usuario:
-                print("MEMBROS: ", self.salas[indice_sala].list_clients())
                 return True
             
         return False
