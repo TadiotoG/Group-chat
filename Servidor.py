@@ -11,8 +11,7 @@ from cryptography.hazmat.backends import default_backend
 from base64 import b64encode, b64decode
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from Crypto.Cipher import AES
-from Crypto.Util.Padding import pad
-from Crypto.Util.Padding import unpad
+from Crypto.Util.Padding import pad, unpad
 from hashlib import sha256
 
 class Servidor:
@@ -43,19 +42,22 @@ class Servidor:
         
         return self.usuarios_cadastrados
     
+    
+
+
     # Função para criptografar a mensagem
-    @staticmethod
-    def encrypt_message(key, iv, message):
-        cipher = AES.new(key, AES.MODE_CBC, iv)
-        encrypted_message = base64.b64encode(cipher.encrypt(pad(message.encode(), AES.block_size)))
-        return encrypted_message
+    def encrypt_message(cifrador,message):
+        # Criptografar    
+        texto_preenchido = pad(message.encode(), AES.block_size)
+        texto_cifrado = cifrador.encrypt(texto_preenchido)
+        texto_cifrado_codificado = b64encode(texto_cifrado).decode('utf-8')
+        return texto_cifrado_codificado
 
     # Função para descriptografar a mensagem
-    @staticmethod
-    def decrypt_message(key, iv, encrypted_message):
-        cipher = AES.new(key, AES.MODE_CBC, iv)
-        decrypted_message = unpad(cipher.decrypt(base64.b64decode(encrypted_message)), AES.block_size)
-        return decrypted_message    
+    def decrypt_message(cifrador,texto_cifrado):
+        texto_decodificado = b64decode(texto_cifrado)
+        texto_recuperado = unpad(cifrador.decrypt(texto_decodificado), AES.block_size)
+        return texto_recuperado   
 
     @staticmethod
     def obter_chave_publica_codificada(self):
@@ -214,13 +216,10 @@ class Servidor:
                 self.controle_crip = True
                 #print("TESTE")
                 chave_simetrica = self.identifica_chave(self, addr)                
-                #msg = b64decode(msg)
-                #print(chave_simetrica)
-                key = chave_simetrica[:32]
-                iv = chave_simetrica[32:]
+                cifrador = AES.new(chave_simetrica, AES.MODE_ECB)
                 #print("Chave " , key)
                 #print("IV ", iv)
-                msg = self.decrypt_message(key, iv, msg)
+                msg = self.decrypt_message(cifrador, msg)
                 msg = msg.decode()
                 mensagem =  msg.split(" ")
                 #print(mensagem)
@@ -477,7 +476,9 @@ class Servidor:
                 resposta = "ERRO : Comando Digitado é Invalido!"
             if (self.controle_crip and not flag_chave_simetrica):
                 print(resposta)
-                resposta_encripitada= self.encrypt_message(key, iv, resposta) 
+                chave_simetrica = self.identifica_chave(self, addr)                
+                cifrador = AES.new(chave_simetrica, AES.MODE_ECB)
+                resposta_encripitada= self.encrypt_message(cifrador, resposta) 
 
                 client_socket.send(resposta_encripitada)
             elif(not flag_chave_simetrica):
