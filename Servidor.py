@@ -194,8 +194,7 @@ class Servidor:
         # Envia uma mensagem de boas-vindas para o cliente
         client_socket.send(b'Obrigado por se conectar!')
         resposta = ""
-        flag_chave_simetrica = False
-
+        
         while True:
             msg = client_socket.recv(1024)
             if not msg: break
@@ -237,7 +236,7 @@ class Servidor:
             
 
             elif mensagem[0] == "CHAVE_SIMETRICA":
-                flag_chave_simetrica = True
+                
                 chave_simetrica = b64decode(mensagem[1])
                 #print(mensagem[1])
                 chave_simetrica_decrypted = self.chave_privada.decrypt(
@@ -250,6 +249,7 @@ class Servidor:
                 )
                 #print(chave_simetrica_decrypted)
                 self.grava_autentifica_usuario(self, nome_usuario, addr, chave_simetrica_decrypted)
+                resposta = "AUTENTICACAO OK"
                 
             # CRIAR SALA
             elif mensagem[0] == "CRIAR_SALA":
@@ -474,18 +474,16 @@ class Servidor:
             #Caso o comando nao seja encontrado
             else:
                 resposta = "ERRO : Comando Digitado é Invalido!"
-            if (self.controle_crip and not flag_chave_simetrica):
+
+            if (self.controle_crip):
                 print(resposta)
                 chave_simetrica = self.identifica_chave(self, addr)                
                 cifrador = AES.new(chave_simetrica, AES.MODE_ECB)
                 resposta_encripitada= self.encrypt_message(cifrador, resposta) 
 
                 client_socket.send(resposta_encripitada)
-            elif(not flag_chave_simetrica):
-
+            else:
                 client_socket.send(resposta.encode()) 
-            
-            flag_chave_simetrica = False
 
         # Fecha a conexão com o cliente
         client_socket.close()

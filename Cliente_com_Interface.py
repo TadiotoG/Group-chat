@@ -150,7 +150,7 @@ class Main_Menu:
                 
                 hash_senha =  sha256(password.encode())
                 mensagem_cliente = msg + " ["+str(hash_senha)+"("+password+")]"
-                encrypted_message = encrypt_message(mensagem_cliente) 
+                encrypted_message = encrypt_message(mensagem_cliente)
                        
                 client_socket.send(encrypted_message)
 
@@ -162,7 +162,11 @@ class Main_Menu:
             elif public_or_private.upper() == "PUBLICA":
                 msg = "CRIAR_SALA " + public_or_private.upper() + " "  + sala_name 
 
-                encrypted_message = encrypt_message(msg)        
+                hash_senha =  sha256(password.encode())
+                mensagem_cliente = msg + " ["+str(hash_senha)+"("+password+")]"
+                encrypted_message = encrypt_message(mensagem_cliente)
+
+                encrypted_message = encrypt_message(mensagem_cliente)        
                 client_socket.send(encrypted_message)
 
                 #self.receive_msg()
