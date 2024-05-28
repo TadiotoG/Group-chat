@@ -64,6 +64,14 @@ class Servidor:
         resposta_encripitada= self.encrypt_message(cifrador, resposta) 
         client_socket.send(resposta_encripitada)
 
+    def verifica_usuario_na_sala(self, usuario, indice_sala):
+        for nome in self.salas[indice_sala].list_clients():
+            if nome == usuario:
+                print("MEMBROS: ", self.salas[indice_sala].list_clients())
+                return True
+            
+        return False
+
     @staticmethod
     def obter_chave_publica_codificada(self):
         # Serializar a chave pública
@@ -460,7 +468,11 @@ class Servidor:
                             conteudo = conteudo +" "+ mensagem[i] 
                         conteudo = conteudo + "\n"
                     indice_sala = self.encontrar_sala(nome_da_sala)
-                    if indice_sala == -1:
+                    
+                    if not self.verifica_usuario_na_sala(nome_usuario, indice_sala):
+                        resposta = "ERRO: Voce não esta nessa sala"   
+
+                    elif indice_sala == -1:
                         resposta = "ERRO: Sala não encontrada!"
                     else:
                         resposta = self.salas[indice_sala].list_clients()

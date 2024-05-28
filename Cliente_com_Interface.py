@@ -291,7 +291,7 @@ class Main_Menu:
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 host = socket.gethostname()
-#host = "192.168.56.1"
+#host = "10.81.175.44"
 port = 12345
 
 # Conecta ao servidor
