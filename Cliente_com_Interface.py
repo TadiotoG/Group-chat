@@ -309,11 +309,7 @@ while(not autenticado):
 
     msg = input('Envie um mensagem : ')
     mensagem_cliente = msg.split(" ")
-    if (mensagem_cliente[0] ==  "REGISTRO"):
-        client_socket.send(msg.encode())
-    elif (mensagem_cliente[0] ==  "AUTENTICACAO"):
-        print(msg.encode())
-        client_socket.send(msg.encode())
+    client_socket.send(msg.encode())
 
     data = client_socket.recv(1024)
     #if " " in data.decode():

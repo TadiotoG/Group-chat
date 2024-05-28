@@ -24,6 +24,7 @@ class Sala:
             for i in range(len(self.clients)):
                 if self.clients[i] == client2remove:
                     del(self.clients[i])
+                    print(self.clients)
                     return "Membro Removido!"
         else:
             return "Voce nao pode banir este usuario!"

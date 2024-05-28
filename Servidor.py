@@ -39,11 +39,7 @@ class Servidor:
                 
         # Carregar usuários cadastrados de algum lugar
         self.usuarios_cadastrados = pd.read_csv('UsuariosCadastrados.csv', sep=',', encoding='latin-1')
-        
         return self.usuarios_cadastrados
-    
-    
-
 
     # Função para criptografar a mensagem
     def encrypt_message(cifrador,message):
@@ -81,7 +77,6 @@ class Servidor:
         # Codificar em Base64 e retornar
         #chave_privada_codificada = b64encode(chave_privada_serializada).decode('utf-8')
         return chave_privada_serializada
-
 
     @staticmethod
     def carrega_salas(self):
@@ -197,6 +192,9 @@ class Servidor:
         
         while True:
             msg = client_socket.recv(1024)
+            print("MSG: ", msg)
+            print("Decode: ", msg.decode())
+
             if not msg: break
             #print('Mensagem do cliente:', msg.decode())
             #msg = msg.decode() 
@@ -234,7 +232,6 @@ class Servidor:
                 if(self.autentifica_usuario(self, nome_usuario, addr)):
                     resposta = "CHAVE_PUBLICA " + self.chave_publica_codificada       
             
-
             elif mensagem[0] == "CHAVE_SIMETRICA":
                 
                 chave_simetrica = b64decode(mensagem[1])
