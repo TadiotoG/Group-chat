@@ -57,6 +57,12 @@ class Servidor:
         print("Seg")
         texto_recuperado = unpad(cifrador.decrypt(texto_decodificado), AES.block_size)
         return texto_recuperado   
+    
+    def envia(self,client_socket,addr,resposta):
+        chave_simetrica = self.identifica_chave(self, addr)                
+        cifrador = AES.new(chave_simetrica, AES.MODE_ECB)
+        resposta_encripitada= self.encrypt_message(cifrador, resposta) 
+        client_socket.send(resposta_encripitada)
 
     @staticmethod
     def obter_chave_publica_codificada(self):
@@ -269,13 +275,17 @@ class Servidor:
                             new_string = hash_pluss_senha[1:len(hash_pluss_senha)-2]
                             new_string = new_string.split("(")
 
+                            #print("NEW STRING: ", new_string)
+
                             hash = new_string[0]
                             senha = new_string[1]
 
                             print("Senha: ", senha, "  Hash da senha: ", hash)
 
-                            hash_senha =  sha256(senha.encode())
-                            hash_senha = str(hash_senha.hexdigest())
+                            hash_senha =  sha256(senha.encode()).hexdigest()
+                            
+                            #hash_senha = str(hash_senha.hexdigest())
+                            print("Hash novo :" , hash_senha)
 
                             if hash == hash_senha:
                                 new_sala = Sala(nome_da_sala, nome_usuario, senha)
@@ -309,12 +319,14 @@ class Servidor:
                     if indice_sala == -1:
                         resposta = "ERRO: Sala não encontrada!"
 
-                    else:
+                    elif(not nome_usuario in self.salas[indice_sala].list_clients()):
                         resposta = self.salas[indice_sala].add_new_client(nome_usuario, senha)
                         self.salvar_salas_csv()
                         usuarios = self.salas[indice_sala].list_clients()
-                        usuarios_da_sala =  usuarios.split(', ')                       
+                        usuarios_da_sala =  usuarios.split(', ')
+                        #resposta = resposta + str(usuarios_da_sala)                    
                         for nome in usuarios_da_sala:
+                            resposta = resposta + " " + nome
                             end_envio = self.identifica_endereco(self,nome)
                             if end_envio != None:
                                 for i in range(len(self.socket)):
@@ -323,7 +335,11 @@ class Servidor:
                                         if end_envio[0] == end_socket[0] and end_envio[1] == end_socket[1]:
                                             cliente = self.socket[i]
                                             conteudo = "ENTROU " + nome_da_sala + " " + nome_usuario
-                                            cliente.send(conteudo.encode())
+                                            self.envia(cliente,end_envio,conteudo)
+                                            #cliente.send(conteudo.encode())
+
+                    else:
+                        resposta = "ERRO : Usuario ja esta na sala"
 
                 else:
                     resposta = "ERRO : Para realizar essa operacao é necessario realizar a AUTENTICACAO primeiro !!! "
@@ -369,7 +385,33 @@ class Servidor:
 
                     else:
                         resposta = self.salas[indice_sala].remove_client(nome_usuario, usuario_banido) #BANIMENTO_OK
-                        self.salvar_salas_csv()
+
+                        if resposta == "BANIMENTO_OK":
+                            end_envio = self.identifica_endereco(self,usuario_banido)
+                            if end_envio != None:
+                                for i in range(len(self.socket)):
+                                    end_socket = self.socket[i].getpeername()
+                                    if end_envio[0] != addr[0] or end_envio[1] != addr[1]:
+                                        if end_envio[0] == end_socket[0] and end_envio[1] == end_socket[1]:
+                                            cliente = self.socket[i]
+                                            conteudo = "BANIDO_DA_SALA " + nome_da_sala
+                                            self.envia(cliente,end_envio,conteudo)
+                                            #cliente.send(conteudo.encode())
+
+                            self.salvar_salas_csv()
+                            usuarios = self.salas[indice_sala].list_clients()
+                            usuarios_da_sala =  usuarios.split(', ')                       
+                            for nome in usuarios_da_sala:
+                                end_envio = self.identifica_endereco(self,nome)
+                                if end_envio != None:
+                                    for i in range(len(self.socket)):
+                                        end_socket = self.socket[i].getpeername()
+                                        if end_envio[0] != addr[0] or end_envio[1] != addr[1]:
+                                            if end_envio[0] == end_socket[0] and end_envio[1] == end_socket[1]:
+                                                cliente = self.socket[i]
+                                                conteudo = "SAIU " + nome_da_sala + " " + usuario_banido
+                                                self.envia(cliente,end_envio,conteudo)
+                                                #cliente.send(conteudo.encode())
                 else:
                     resposta = "ERRO : Para realizar essa operacao é necessario realizar a AUTENTICACAO primeiro !!! "
             # SAIR DO SISTEMA
@@ -419,7 +461,8 @@ class Servidor:
                                         if end_envio[0] == end_socket[0] and end_envio[1] == end_socket[1]:
                                             cliente = self.socket[i]
                                             conteudo = "MENSAGEM " + nome_da_sala + " " + self.identifica_usuario(self,addr) + " " + conteudo
-                                            cliente.send(conteudo.encode())
+                                            self.envia(cliente,end_envio,conteudo)
+                                            #cliente.send(conteudo.encode())
                                             #print(self.socket[i])
                 else:
                     resposta = "ERRO : Para realizar essa operacao é necessario realizar a AUTENTICACAO primeiro !!! "
@@ -437,21 +480,7 @@ class Servidor:
                         if self.salas[indice_sala].admin != nome_usuario:
                             resposta = "ERRO: Voce nao tem permissao para fechar esta sala"
                     
-                        else:
-                            resposta = self.salas[indice_sala].list_clients()
-                            usuarios_da_sala =  resposta.split(', ')
-                            for nome in usuarios_da_sala:
-                                end_envio = self.identifica_endereco(self,nome)
-                                if end_envio != None:
-                                    for i in range(len(self.socket)):
-                                        end_socket = self.socket[i].getpeername()
-                                        if end_envio[0] != addr[0] or end_envio[1] != addr[1]:
-                                            if end_envio[0] == end_socket[0] and end_envio[1] == end_socket[1]:
-                                                cliente = self.socket[i]
-                                                conteudo = "Sala " + nome_da_sala + " fechada!"
-                                                cliente.send(conteudo.encode())
-                        
-                            resposta = "FECHAR_SALA_OK"
+                        else:                        
                             usuarios = self.salas[indice_sala].list_clients()
                             usuarios_da_sala =  usuarios.split(', ')     
                             del(self.salas[indice_sala])
@@ -465,7 +494,9 @@ class Servidor:
                                             if end_envio[0] == end_socket[0] and end_envio[1] == end_socket[1]:
                                                 cliente = self.socket[i]
                                                 conteudo = "SALA_FECHADA " + nome_da_sala
-                                                cliente.send(conteudo.encode())
+                                                self.envia(cliente,end_envio,conteudo)
+                            resposta = "FECHAR_SALA_OK"
+                                                #cliente.send(conteudo.encode())
                             # Após o fechamento, nenhuma outra mensagem deve enviada pelo servidor naquela sala.
                 else:
                     resposta = "ERRO : Para realizar essa operacao é necessario realizar a AUTENTICACAO primeiro !!! "
