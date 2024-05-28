@@ -31,7 +31,7 @@ def encrypt_message(message):
      # Criptografar    
     texto_preenchido = pad(message.encode(), AES.block_size)
     texto_cifrado = cifrador.encrypt(texto_preenchido)
-    texto_cifrado_codificado = b64encode(texto_cifrado).decode('utf-8')
+    texto_cifrado_codificado = b64encode(texto_cifrado)
     return texto_cifrado_codificado
 
 # Função para descriptografar a mensagem
@@ -245,8 +245,8 @@ class Main_Menu:
             encrypted_message = encrypt_message(msg)        
             client_socket.send(encrypted_message)
 
-            self.receive_msg()
             self.message_entry_banir_usuario.delete(0, tk.END)
+            self.message_entry_banir_usuario2.delete(0, tk.END)
 
     def listar_sala_message(self, event=None):
         msg = "LISTAR_SALAS"

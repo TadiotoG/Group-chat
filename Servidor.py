@@ -42,16 +42,19 @@ class Servidor:
         return self.usuarios_cadastrados
 
     # Função para criptografar a mensagem
-    def encrypt_message(cifrador,message):
+    def encrypt_message(self,cifrador,message):
         # Criptografar    
         texto_preenchido = pad(message.encode(), AES.block_size)
         texto_cifrado = cifrador.encrypt(texto_preenchido)
-        texto_cifrado_codificado = b64encode(texto_cifrado).decode('utf-8')
+        texto_cifrado_codificado = b64encode(texto_cifrado)
+        print(texto_cifrado_codificado)
         return texto_cifrado_codificado
 
     # Função para descriptografar a mensagem
-    def decrypt_message(cifrador,texto_cifrado):
+    def decrypt_message(self,cifrador,texto_cifrado):
+        print("Primeiro")
         texto_decodificado = b64decode(texto_cifrado)
+        print("Seg")
         texto_recuperado = unpad(cifrador.decrypt(texto_decodificado), AES.block_size)
         return texto_recuperado   
 
@@ -192,14 +195,12 @@ class Servidor:
         
         while True:
             msg = client_socket.recv(1024)
-            print("MSG: ", msg)
-            print("Decode: ", msg.decode())
 
             if not msg: break
             #print('Mensagem do cliente:', msg.decode())
             #msg = msg.decode() 
             #msg = msg.decode(errors='ignore')  # Tentativa de decodificação ignorando erros
-            if " " in msg.decode():
+            if " " in msg.decode() or len(msg) < 13:
             #if msg:
             #if isinstance(msg, bytes):
               #try:
@@ -217,6 +218,7 @@ class Servidor:
                 #print("Chave " , key)
                 #print("IV ", iv)
                 msg = self.decrypt_message(cifrador, msg)
+                print(msg)
                 msg = msg.decode()
                 mensagem =  msg.split(" ")
                 #print(mensagem)
