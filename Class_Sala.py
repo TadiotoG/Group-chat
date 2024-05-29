@@ -1,3 +1,6 @@
+#Autores:    David Antonio Brocardo; 
+#            Leonardo Bednarczuk Balan de Oliveira; 
+#            Gabriel Tadioto de Oliveira.
 class Sala:
 
     def __init__(self, sala_name, creator, password = ""):

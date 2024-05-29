@@ -1,3 +1,7 @@
+#Autores:    David Antonio Brocardo; 
+#            Leonardo Bednarczuk Balan de Oliveira; 
+#            Gabriel Tadioto de Oliveira.
+
 import socket
 import threading
 import csv
@@ -37,7 +41,7 @@ class Servidor:
                 writer.writeheader()
                 writer.writerow({'NOME':'David'})
                 
-        # Carregar usuários cadastrados de algum lugar
+        # Carregar usuários cadastrados do CSV
         self.usuarios_cadastrados = pd.read_csv('UsuariosCadastrados.csv', sep=',', encoding='latin-1')
         return self.usuarios_cadastrados
 
@@ -105,7 +109,7 @@ class Servidor:
                 writer = csv.DictWriter(csvfile, fieldnames= ['NOME', 'CRIADOR', 'SENHA', 'USUARIOS'])
                 writer.writeheader()
                 
-        # Carregar usuários cadastrados de algum lugar
+        # Carregar usuários cadastrados
         csv_salas = pd.read_csv('SalasCadastradas.csv')
         for i in range(len(csv_salas)):
             if str(csv_salas["SENHA"][i]) != "nan":
@@ -115,12 +119,12 @@ class Servidor:
                 new_sala = Sala(str(csv_salas["NOME"][i]), str(csv_salas["CRIADOR"][i]))
 
             todos_usuarios = str(csv_salas["USUARIOS"][i])
-            lista_todos_usuarios = todos_usuarios.split(" ") # Estava pegando o espaco final como um elemento
-            del(lista_todos_usuarios[len(lista_todos_usuarios)-1]) # Retira o espaco final
+            lista_todos_usuarios = todos_usuarios.split(" ") 
+            del(lista_todos_usuarios[len(lista_todos_usuarios)-1]) 
             
             new_sala.load_system(lista_todos_usuarios)
             self.salas.append(new_sala)
-        # new_sala = Sala(nome_da_sala, nome_usuario, senha)
+        
 
     @staticmethod
     def autentifica_usuario(self, usuario, addr):
@@ -150,7 +154,7 @@ class Servidor:
     
     @staticmethod
     def registro_usuario(self, usuario, addr):
-        #usuarios_cadastrados = self.carrega_usuario(self)
+      
         user = self.usuarios_cadastrados['NOME']
         for nome in user:
             if usuario == nome:
@@ -175,11 +179,10 @@ class Servidor:
 
     @staticmethod
     def identifica_chave(self,addr):
-        #user = self.usuarios_cadastrados['NOME']        
+            
         i = 0
         for end in self.codigo_usuarios:
-            if end[0] == addr[0] and end[1] == addr [1]:
-                #print(self.usuarios_autenticados)
+            if end[0] == addr[0] and end[1] == addr [1]:            
                 return self.chave_simetrica[i]  
             i += 1
 
@@ -194,39 +197,26 @@ class Servidor:
     @staticmethod
     def handle_client(self, client_socket, addr):
         print('Conexão recebida de', addr)
-        # Envia uma mensagem de boas-vindas para o cliente
-        #client_socket.send(b'Obrigado por se conectar!')
         resposta = ""
         
         while True:
             msg = client_socket.recv(1024)
 
             if not msg: break
-            #print('Mensagem do cliente:', msg.decode())
-            #msg = msg.decode() 
-            #msg = msg.decode(errors='ignore')  # Tentativa de decodificação ignorando erros
             if " " in msg.decode() or len(msg) < 13:
-            #if msg:
-            #if isinstance(msg, bytes):
-              #try:
-                #print("TESTE 0")
                 self.controle_crip = False
                 msg = msg.decode()                
                 mensagem =  msg.split(" ")
                 print('Mensagem do cliente:', msg)
-                #except:
+                
             else:
                 self.controle_crip = True
-                #print("TESTE")
                 chave_simetrica = self.identifica_chave(self, addr)                
                 cifrador = AES.new(chave_simetrica, AES.MODE_ECB)
-                #print("Chave " , key)
-                #print("IV ", iv)
                 msg = self.decrypt_message(cifrador, msg)
                 print(msg)
                 msg = msg.decode()
                 mensagem =  msg.split(" ")
-                #print(mensagem)
 
             # REGISTRO
             if mensagem[0] ==  "REGISTRO":              
@@ -237,12 +227,12 @@ class Servidor:
             elif mensagem[0] ==  "AUTENTICACAO":              
                 nome_usuario = mensagem[1]
                 if(self.autentifica_usuario(self, nome_usuario, addr)):
-                    resposta = "CHAVE_PUBLICA " + self.chave_publica_codificada       
-            
+                    resposta = "CHAVE_PUBLICA " + self.chave_publica_codificada      
+
+            # CHAVE_SIMETRICA
             elif mensagem[0] == "CHAVE_SIMETRICA":
                 
                 chave_simetrica = b64decode(mensagem[1])
-                #print(mensagem[1])
                 chave_simetrica_decrypted = self.chave_privada.decrypt(
                     chave_simetrica,
                     padding.OAEP(
@@ -353,7 +343,6 @@ class Servidor:
                     resposta = "ERRO : Para realizar essa operacao é necessario realizar a AUTENTICACAO primeiro !!! "
             
             # SAIR_SALA
-            # Tadioto verificar na especificacao e ajeitar algumas saidas de acordo com oque foi pedido
             elif mensagem[0] == "SAIR_SALA":
                 nome_usuario = self.identifica_usuario(self, addr)
                 nome_da_sala = mensagem[1]
@@ -385,6 +374,7 @@ class Servidor:
                         resposta = resposta + sala.sala_name + ", "
                 else:
                     resposta = "ERRO : Para realizar essa operacao é necessario realizar a AUTENTICACAO primeiro !!! "
+                    
             # BANIR_USUARIO
             elif mensagem[0] == "BANIR_USUARIO":
                 nome_usuario = self.identifica_usuario(self, addr)
@@ -426,12 +416,14 @@ class Servidor:
                                                 #cliente.send(conteudo.encode())
                 else:
                     resposta = "ERRO : Para realizar essa operacao é necessario realizar a AUTENTICACAO primeiro !!! "
+
             # SAIR DO SISTEMA
             elif mensagem[0] == "DESCONECTAR":
                 print("Cliente ", self.identifica_usuario(self,addr), " desconectado")
                 resposta = "Desconectado do servidor!"
 
             # LISTAR USUARIOS DE UMA SALA
+            #Funcao extra
             elif mensagem[0] == "LISTAR_USUARIOS":
                 nome_da_sala = mensagem[1]
                 indice_sala = self.encontrar_sala(nome_da_sala)
@@ -571,7 +563,6 @@ class Servidor:
         # Define a porta em que o servidor irá escutar
         port = 8080
 
-        # Faz o bind do socket com o host e a porta
         server_socket.bind((host, port))
 
         # Começa a escutar por conexões
