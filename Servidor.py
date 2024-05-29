@@ -195,7 +195,7 @@ class Servidor:
     def handle_client(self, client_socket, addr):
         print('Conexão recebida de', addr)
         # Envia uma mensagem de boas-vindas para o cliente
-        client_socket.send(b'Obrigado por se conectar!')
+        #client_socket.send(b'Obrigado por se conectar!')
         resposta = ""
         
         while True:
@@ -268,7 +268,7 @@ class Servidor:
 
                     elif privacidade == "PRIVADA":
                         if len(mensagem) > 3:
-                            
+                            print(mensagem[3])
                             hash_pluss_senha = mensagem[3]
 
                             new_string = hash_pluss_senha[1:len(hash_pluss_senha)-2]
@@ -282,9 +282,9 @@ class Servidor:
                                 self.salas.append(new_sala)
                                 self.salvar_salas_csv()
                                 resposta = "CRIAR_SALA_OK"
-
                             else:
                                 resposta = "ERRO : Integridade comprometida!"
+
                         else:
                             resposta = "ERRO : Ausencia de senha para sala PRIVADA"
 
@@ -569,7 +569,7 @@ class Servidor:
         host = socket.gethostname()
 
         # Define a porta em que o servidor irá escutar
-        port = 12345
+        port = 8080
 
         # Faz o bind do socket com o host e a porta
         server_socket.bind((host, port))

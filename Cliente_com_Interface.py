@@ -147,10 +147,12 @@ class Main_Menu:
             if public_or_private.upper() == "PRIVADA":
 
                 msg = "CRIAR_SALA " + public_or_private.upper() + " "  + sala_name
-                
-                hash_senha =  sha256(password.encode()).hexdigest()
-                mensagem_cliente = msg + " ["+str(hash_senha)+"("+password+")]"
-                encrypted_message = encrypt_message(mensagem_cliente)
+                if (password.strip()):
+                    hash_senha =  sha256(password.encode()).hexdigest()
+                    mensagem_cliente = msg + " ["+str(hash_senha)+"("+password+")]"
+                    encrypted_message = encrypt_message(mensagem_cliente)
+                else:
+                    encrypted_message = encrypt_message(msg)
                        
                 client_socket.send(encrypted_message)
 
@@ -291,15 +293,16 @@ class Main_Menu:
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 host = socket.gethostname()
-#host = "10.81.175.44"
-port = 12345
+#host = "192.168.0.101"
+port = 8080
 
 # Conecta ao servidor
 client_socket.connect((host, port))
 
+
 # Recebe dados do servidor
-data = client_socket.recv(1024)
-print('Mensagem do servidor:', data.decode())
+#data = client_socket.recv(1024)
+#print('Mensagem do servidor:', data.decode())
 
 autenticado = False
 
