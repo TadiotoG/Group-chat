@@ -29,7 +29,7 @@ O servidor e o cliente estão previamente configurados para rodar no IP da próp
 Caso deseje alterar essas configurações, siga as instruções abaixo:
 
     - Alterar a Porta do Servidor:
-        No arquivo Servidor.py, vá até a linha 572 e modifique a porta para o valor desejado
+        No arquivo Servidor.py, vá até a linha 564 e modifique a porta para o valor desejado
          - port = ColocarAquiPortaDesejada
 
     - Alterar IP e Porta do Cliente:
@@ -38,7 +38,7 @@ Caso deseje alterar essas configurações, siga as instruções abaixo:
             Informe o IP e a porta desejados. Para o IP local e porta 8080, basta digitar '0'.
         
         Via Terminal:
-            No arquivo Cliente_com_Interface.py, vá até a linha 296 e modifique o IP e a porta para os valores desejados:
+            No arquivo Cliente_com_Interface.py, vá até a linha 288 e modifique o IP e a porta para os valores desejados:
                 host = "ColocarAquiIPDesejado"
                 port = ColocarAquiPortaDesejada 
          
