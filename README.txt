@@ -35,7 +35,7 @@ Caso deseje alterar essas configurações, siga as instruções abaixo:
     - Alterar IP e Porta do Cliente:
 
         Via Executável: 
-            Informe o IP e a porta desejados. Para o IP local e porta 8080, basta digitar '0'.
+            Informe o IP e a porta desejados. 
         
         Via Terminal:
             No arquivo Cliente_com_Interface.py, vá até a linha 288 e modifique o IP e a porta para os valores desejados:
